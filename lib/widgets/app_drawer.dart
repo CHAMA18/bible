@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../nav.dart';
 import '../auth_provider.dart';
+import 'app_logo.dart';
 
 class AppDrawer extends StatelessWidget {
   final String currentRoute;
@@ -30,18 +31,11 @@ class AppDrawer extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(
-                      Icons.menu_book_rounded,
-                      color: colorScheme.onPrimaryContainer,
-                      size: 24,
-                    ),
+                  AppLogo(
+                    size: 56,
+                    radius: 18,
+                    backgroundColor: colorScheme.primaryContainer,
+                    padding: const EdgeInsets.all(5),
                   ),
                   const SizedBox(height: 24),
                   Text(

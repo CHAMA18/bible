@@ -1,9 +1,9 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../nav.dart';
 import '../auth_provider.dart';
+import '../widgets/app_logo.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -70,10 +70,11 @@ class _AuthPageState extends State<AuthPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.menu_book,
-                  color: colorScheme.primary,
-                  size: 48,
+                AppLogo(
+                  size: 64,
+                  radius: 20,
+                  backgroundColor: colorScheme.primaryContainer.withValues(alpha: 0.18),
+                  padding: const EdgeInsets.all(4),
                 ),
                 const SizedBox(height: 24),
                 Text(
@@ -192,10 +193,11 @@ class _AuthPageState extends State<AuthPage> {
                   Row(
                     mainAxisAlignment: isDesktop ? MainAxisAlignment.start : MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.menu_book,
-                        color: colorScheme.primary,
-                        size: 32,
+                      AppLogo(
+                        size: 40,
+                        radius: 12,
+                        backgroundColor: colorScheme.primaryContainer.withValues(alpha: 0.18),
+                        padding: const EdgeInsets.all(3),
                       ),
                       const SizedBox(width: 12),
                       Text(
