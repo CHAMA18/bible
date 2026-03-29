@@ -369,8 +369,8 @@ class _ReaderPageState extends State<ReaderPage> {
           // Main Scrolling Content
           Positioned.fill(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.only(
-                top: 100, // Header height + padding
+              padding: EdgeInsets.only(
+                top: 80 + MediaQuery.of(context).padding.top, // Header height + padding
                 bottom: 180, // Bottom nav + floating bar padding
                 left: 24,
                 right: 24,
@@ -433,7 +433,7 @@ class _ReaderPageState extends State<ReaderPage> {
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
                 child: Container(
-                  height: 80,
+                  height: 64 + MediaQuery.of(context).padding.top,
                   padding: EdgeInsets.only(
                     top: MediaQuery.of(context).padding.top, // handle status bar
                     left: 24,
