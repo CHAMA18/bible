@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'theme_provider.dart';
 import 'auth_provider.dart';
+import 'firebase_options.dart';
 import 'theme.dart';
 import 'nav.dart';
 import 'widgets/global_ad_banner.dart';
@@ -11,10 +13,17 @@ import 'widgets/global_ad_banner.dart';
 /// Main entry point for the application
 ///
 /// This sets up:
+/// - Firebase
 /// - go_router navigation
 /// - Material 3 theming with light/dark modes
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   if (!kIsWeb) {
     MobileAds.instance.initialize();
   }

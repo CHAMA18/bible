@@ -14,6 +14,17 @@ class SignupPage extends StatefulWidget {
 
 class _SignupPageState extends State<SignupPage> {
   bool _obscurePassword = true;
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +104,8 @@ class _SignupPageState extends State<SignupPage> {
               height: 800,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFFFADD9B).withValues(alpha: 0.1), // secondary-container / 10%
+                color: const Color(0xFFFADD9B)
+                    .withValues(alpha: 0.1), // secondary-container / 10%
               ),
             ),
           ),
@@ -109,17 +121,19 @@ class _SignupPageState extends State<SignupPage> {
             children: [
               // Header
               _buildHeader(context, isTabletOrDesktop),
-              
+
               // Main Content (Form)
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 48.0),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24.0, vertical: 48.0),
                         child: Center(
                           child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 576), // max-w-xl
+                            constraints:
+                                const BoxConstraints(maxWidth: 576), // max-w-xl
                             child: Column(
                               children: [
                                 // Titles
@@ -135,7 +149,8 @@ class _SignupPageState extends State<SignupPage> {
                                 Text(
                                   'Join the Sanctuary',
                                   textAlign: TextAlign.center,
-                                  style: theme.textTheme.displayMedium?.copyWith(
+                                  style:
+                                      theme.textTheme.displayMedium?.copyWith(
                                     color: colorScheme.onSurface,
                                     fontWeight: FontWeight.w300,
                                     letterSpacing: -0.5,
@@ -146,7 +161,8 @@ class _SignupPageState extends State<SignupPage> {
                                   'Begin your journey through the sacred scrolls and eternal wisdom.',
                                   textAlign: TextAlign.center,
                                   style: theme.textTheme.bodyLarge?.copyWith(
-                                    color: const Color(0xFF58413F).withValues(alpha: 0.8), // on-surface-variant
+                                    color: const Color(0xFF58413F).withValues(
+                                        alpha: 0.8), // on-surface-variant
                                     fontStyle: FontStyle.italic,
                                   ),
                                 ),
@@ -154,27 +170,50 @@ class _SignupPageState extends State<SignupPage> {
 
                                 // Form Container
                                 Container(
-                                  padding: EdgeInsets.all(isTabletOrDesktop ? 48.0 : 24.0), // md:p-12 p-6
+                                  padding: EdgeInsets.all(isTabletOrDesktop
+                                      ? 48.0
+                                      : 24.0), // md:p-12 p-6
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.4), // surface-container-lowest/40
+                                    color: Colors.white.withValues(
+                                        alpha:
+                                            0.4), // surface-container-lowest/40
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(12),
                                     child: BackdropFilter(
-                                      filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4), // backdrop-blur-sm
+                                      filter: ImageFilter.blur(
+                                          sigmaX: 4,
+                                          sigmaY: 4), // backdrop-blur-sm
                                       child: Column(
                                         children: [
                                           _buildTextField(
                                             context,
                                             label: 'FULL NAME',
                                             keyboardType: TextInputType.name,
+                                            controller: _nameController,
                                           ),
                                           const SizedBox(height: 40),
                                           _buildTextField(
                                             context,
                                             label: 'EMAIL ADDRESS',
-                                            keyboardType: TextInputType.emailAddress,
+                                            keyboardType:
+                                                TextInputType.emailAddress,
+                                            controller: _emailController,
+                                          ),
+                                          const SizedBox(height: 40),
+                                          _buildTextField(
+                                            context,
+                                            label: 'CREATE PASSWORD',
+                                            obscureText: _obscurePassword,
+                                            controller: _passwordController,
+                                          ),
+                                          const SizedBox(height: 40),
+                                          _buildTextField(
+                                            context,
+                                            label: 'EMAIL ADDRESS',
+                                            keyboardType:
+                                                TextInputType.emailAddress,
                                           ),
                                           const SizedBox(height: 40),
                                           _buildTextField(
@@ -192,15 +231,18 @@ class _SignupPageState extends State<SignupPage> {
                                               gradient: const LinearGradient(
                                                 colors: [
                                                   Color(0xFF6B0109), // primary
-                                                  Color(0xFF8C1D1D), // primary-container
+                                                  Color(
+                                                      0xFF8C1D1D), // primary-container
                                                 ],
                                                 begin: Alignment.centerLeft,
                                                 end: Alignment.centerRight,
                                               ),
-                                              borderRadius: BorderRadius.circular(8),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: const Color(0xFF6B0109).withValues(alpha: 0.1),
+                                                  color: const Color(0xFF6B0109)
+                                                      .withValues(alpha: 0.1),
                                                   blurRadius: 16,
                                                   offset: const Offset(0, 4),
                                                 ),
@@ -209,20 +251,97 @@ class _SignupPageState extends State<SignupPage> {
                                             child: Material(
                                               color: Colors.transparent,
                                               child: InkWell(
-                                                onTap: () {
-                                                  // Submit form action
-                                                  context.read<AuthProvider>().loginAsUser();
-                                                  context.go(AppRoutes.home);
+                                                onTap: () async {
+                                                  final authProvider = context
+                                                      .read<AuthProvider>();
+                                                  final name = _nameController
+                                                      .text
+                                                      .trim();
+                                                  final email = _emailController
+                                                      .text
+                                                      .trim();
+                                                  final password =
+                                                      _passwordController.text;
+
+                                                  if (email.isEmpty ||
+                                                      password.isEmpty) {
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text(
+                                                            'Please fill in all fields.'),
+                                                        backgroundColor:
+                                                            Colors.redAccent,
+                                                      ),
+                                                    );
+                                                    return;
+                                                  }
+
+                                                  if (password.length < 6) {
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text(
+                                                            'Password must be at least 6 characters.'),
+                                                        backgroundColor:
+                                                            Colors.redAccent,
+                                                      ),
+                                                    );
+                                                    return;
+                                                  }
+
+                                                  final success =
+                                                      await authProvider
+                                                          .signUpWithEmail(
+                                                    email: email,
+                                                    password: password,
+                                                  );
+
+                                                  if (success && mounted) {
+                                                    // Update display name if provided
+                                                    final user =
+                                                        authProvider.user;
+                                                    if (user != null &&
+                                                        name.isNotEmpty) {
+                                                      await user
+                                                          .updateDisplayName(
+                                                              name);
+                                                    }
+                                                    context.go(AppRoutes.home);
+                                                  } else if (mounted &&
+                                                      authProvider
+                                                              .errorMessage !=
+                                                          null) {
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                            authProvider
+                                                                .errorMessage!),
+                                                        backgroundColor:
+                                                            Colors.redAccent,
+                                                      ),
+                                                    );
+                                                  }
                                                 },
-                                                borderRadius: BorderRadius.circular(8),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
                                                 child: Row(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
                                                   children: [
                                                     Text(
                                                       'CREATE ACCOUNT',
-                                                      style: theme.textTheme.labelMedium?.copyWith(
-                                                        color: Colors.white, // on-primary
-                                                        fontWeight: FontWeight.bold,
+                                                      style: theme
+                                                          .textTheme.labelMedium
+                                                          ?.copyWith(
+                                                        color: Colors
+                                                            .white, // on-primary
+                                                        fontWeight:
+                                                            FontWeight.bold,
                                                         letterSpacing: 2.0,
                                                         fontSize: 12,
                                                       ),
@@ -238,36 +357,53 @@ class _SignupPageState extends State<SignupPage> {
                                               ),
                                             ),
                                           ),
-                                          
+
                                           const SizedBox(height: 16),
-                                          
+
                                           // Guest Button
                                           Container(
                                             width: double.infinity,
                                             height: 56,
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFFF5F3EE), // surface-container-low
-                                              borderRadius: BorderRadius.circular(8),
+                                              color: const Color(
+                                                  0xFFF5F3EE), // surface-container-low
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
                                               border: Border.all(
-                                                color: const Color(0xFFDFBFBC).withValues(alpha: 0.3), // outline-variant/30
+                                                color: const Color(0xFFDFBFBC)
+                                                    .withValues(
+                                                        alpha:
+                                                            0.3), // outline-variant/30
                                               ),
                                             ),
                                             child: Material(
                                               color: Colors.transparent,
                                               child: InkWell(
-                                                onTap: () {
-                                                  context.read<AuthProvider>().loginAsGuest();
-                                                  context.go(AppRoutes.home);
+                                                onTap: () async {
+                                                  final authProvider = context
+                                                      .read<AuthProvider>();
+                                                  final success =
+                                                      await authProvider
+                                                          .signInAsGuest();
+                                                  if (success && mounted) {
+                                                    context.go(AppRoutes.home);
+                                                  }
                                                 },
-                                                borderRadius: BorderRadius.circular(8),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
                                                 child: Row(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
                                                   children: [
                                                     Text(
                                                       'CONTINUE AS GUEST',
-                                                      style: theme.textTheme.labelMedium?.copyWith(
-                                                        color: const Color(0xFF58413F), // on-surface-variant
-                                                        fontWeight: FontWeight.bold,
+                                                      style: theme
+                                                          .textTheme.labelMedium
+                                                          ?.copyWith(
+                                                        color: const Color(
+                                                            0xFF58413F), // on-surface-variant
+                                                        fontWeight:
+                                                            FontWeight.bold,
                                                         letterSpacing: 2.0,
                                                         fontSize: 12,
                                                       ),
@@ -275,7 +411,8 @@ class _SignupPageState extends State<SignupPage> {
                                                     const SizedBox(width: 12),
                                                     const Icon(
                                                       Icons.person_outline,
-                                                      color: Color(0xFF58413F), // on-surface-variant
+                                                      color: Color(
+                                                          0xFF58413F), // on-surface-variant
                                                       size: 18,
                                                     ),
                                                   ],
@@ -283,26 +420,35 @@ class _SignupPageState extends State<SignupPage> {
                                               ),
                                             ),
                                           ),
-                                          
+
                                           const SizedBox(height: 48),
-                                          
+
                                           // Bottom Links
                                           Container(
-                                            padding: const EdgeInsets.only(top: 32),
+                                            padding:
+                                                const EdgeInsets.only(top: 32),
                                             decoration: BoxDecoration(
                                               border: Border(
                                                 top: BorderSide(
-                                                  color: const Color(0xFFDFBFBC).withValues(alpha: 0.1), // outline-variant/10
+                                                  color: const Color(0xFFDFBFBC)
+                                                      .withValues(
+                                                          alpha:
+                                                              0.1), // outline-variant/10
                                                 ),
                                               ),
                                             ),
-                                            child: isTabletOrDesktop 
+                                            child: isTabletOrDesktop
                                                 ? Row(
-                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                    children: _buildBottomLinks(context),
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceBetween,
+                                                    children: _buildBottomLinks(
+                                                        context),
                                                   )
                                                 : Column(
-                                                    children: _buildBottomLinks(context, isMobile: true),
+                                                    children: _buildBottomLinks(
+                                                        context,
+                                                        isMobile: true),
                                                   ),
                                           ),
                                         ],
@@ -315,7 +461,7 @@ class _SignupPageState extends State<SignupPage> {
                           ),
                         ),
                       ),
-                      
+
                       // Footer
                       _buildFooter(context, isTabletOrDesktop),
                     ],
@@ -334,16 +480,21 @@ class _SignupPageState extends State<SignupPage> {
       color: const Color(0xFFFBF9F4).withValues(alpha: 0.85),
       child: ClipRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), // backdrop-blur-xl (approx)
+          filter: ImageFilter.blur(
+              sigmaX: 10, sigmaY: 10), // backdrop-blur-xl (approx)
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 InkWell(
-                  onTap: () {
-                    context.read<AuthProvider>().loginAsGuest();
-                    context.go(AppRoutes.home);
+                  onTap: () async {
+                    final authProvider = context.read<AuthProvider>();
+                    final success = await authProvider.signInAsGuest();
+                    if (success && mounted) {
+                      context.go(AppRoutes.home);
+                    }
                   },
                   child: Row(
                     children: [
@@ -355,11 +506,12 @@ class _SignupPageState extends State<SignupPage> {
                       const SizedBox(width: 12),
                       Text(
                         'Holy Bible',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontStyle: FontStyle.italic,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF1B1C19),
-                        ),
+                        style:
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  fontStyle: FontStyle.italic,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF1B1C19),
+                                ),
                       ),
                     ],
                   ),
@@ -371,11 +523,12 @@ class _SignupPageState extends State<SignupPage> {
                         onPressed: () {},
                         child: Text(
                           'SCHOLARLY TERMS',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: const Color(0xFF58413F),
-                            letterSpacing: 2.0,
-                            fontSize: 11,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: const Color(0xFF58413F),
+                                    letterSpacing: 2.0,
+                                    fontSize: 11,
+                                  ),
                         ),
                       ),
                       const SizedBox(width: 32),
@@ -383,12 +536,14 @@ class _SignupPageState extends State<SignupPage> {
                         onPressed: () {},
                         child: Text(
                           'SIGN UP',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: const Color(0xFF8C1D1D), // primary-container (instead of bold text)
-                            letterSpacing: 2.0,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: const Color(
+                                        0xFF8C1D1D), // primary-container (instead of bold text)
+                                    letterSpacing: 2.0,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
                         ),
                       ),
                     ],
@@ -401,7 +556,8 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  List<Widget> _buildBottomLinks(BuildContext context, {bool isMobile = false}) {
+  List<Widget> _buildBottomLinks(BuildContext context,
+      {bool isMobile = false}) {
     final textTheme = Theme.of(context).textTheme;
     final textWidget = Wrap(
       crossAxisAlignment: WrapCrossAlignment.center,
@@ -456,7 +612,8 @@ class _SignupPageState extends State<SignupPage> {
       decoration: BoxDecoration(
         color: const Color(0xFFF5F3EE), // surface-container-low
         border: Border.all(
-          color: const Color(0xFFDFBFBC).withValues(alpha: 0.2), // outline-variant/20
+          color: const Color(0xFFDFBFBC)
+              .withValues(alpha: 0.2), // outline-variant/20
         ),
         shape: BoxShape.circle,
       ),
@@ -465,7 +622,8 @@ class _SignupPageState extends State<SignupPage> {
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
           onTap: () {},
-          hoverColor: const Color(0xFFFADD9B).withValues(alpha: 0.2), // secondary-container/20
+          hoverColor: const Color(0xFFFADD9B)
+              .withValues(alpha: 0.2), // secondary-container/20
           child: Icon(
             icon,
             color: const Color(0xFF58413F), // on-surface-variant
@@ -481,10 +639,12 @@ class _SignupPageState extends State<SignupPage> {
     required String label,
     bool obscureText = false,
     TextInputType? keyboardType,
+    TextEditingController? controller,
   }) {
     final theme = Theme.of(context);
-    
+
     return TextFormField(
+      controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
       style: theme.textTheme.bodyLarge?.copyWith(
@@ -495,7 +655,8 @@ class _SignupPageState extends State<SignupPage> {
       decoration: InputDecoration(
         labelText: label,
         labelStyle: theme.textTheme.labelMedium?.copyWith(
-          color: const Color(0xFF58413F).withValues(alpha: 0.6), // on-surface-variant/60
+          color: const Color(0xFF58413F)
+              .withValues(alpha: 0.6), // on-surface-variant/60
           letterSpacing: 1.5,
           fontSize: 14,
         ),
@@ -506,12 +667,14 @@ class _SignupPageState extends State<SignupPage> {
         ),
         border: UnderlineInputBorder(
           borderSide: BorderSide(
-            color: const Color(0xFFDFBFBC).withValues(alpha: 0.3), // outline-variant/30
+            color: const Color(0xFFDFBFBC)
+                .withValues(alpha: 0.3), // outline-variant/30
           ),
         ),
         enabledBorder: UnderlineInputBorder(
           borderSide: BorderSide(
-            color: const Color(0xFFDFBFBC).withValues(alpha: 0.3), // outline-variant/30
+            color: const Color(0xFFDFBFBC)
+                .withValues(alpha: 0.3), // outline-variant/30
           ),
         ),
         focusedBorder: const UnderlineInputBorder(
@@ -531,7 +694,7 @@ class _SignupPageState extends State<SignupPage> {
     final brightness = Theme.of(context).brightness;
     final isDark = brightness == Brightness.dark;
     final bgColor = isDark ? const Color(0xFF121210) : const Color(0xFFF5F3EE);
-    
+
     final footerContent = isTabletOrDesktop
         ? Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -539,7 +702,9 @@ class _SignupPageState extends State<SignupPage> {
               Text(
                 'Holy Bible © MMXXIV',
                 style: textTheme.bodyLarge?.copyWith(
-                  color: isDark ? const Color(0xFFE7E5E4) : const Color(0xFF292524), // stone-200 : stone-800
+                  color: isDark
+                      ? const Color(0xFFE7E5E4)
+                      : const Color(0xFF292524), // stone-200 : stone-800
                   fontStyle: FontStyle.italic,
                   fontSize: 18,
                 ),
@@ -581,7 +746,9 @@ class _SignupPageState extends State<SignupPage> {
               Text(
                 'Holy Bible © MMXXIV',
                 style: textTheme.bodyLarge?.copyWith(
-                  color: isDark ? const Color(0xFFE7E5E4) : const Color(0xFF292524),
+                  color: isDark
+                      ? const Color(0xFFE7E5E4)
+                      : const Color(0xFF292524),
                   fontStyle: FontStyle.italic,
                   fontSize: 18,
                 ),
@@ -642,10 +809,10 @@ class _SignupPageState extends State<SignupPage> {
       child: Text(
         text,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: const Color(0xFF323232), // tertiary
-          letterSpacing: 2.0,
-          fontSize: 11,
-        ),
+              color: const Color(0xFF323232), // tertiary
+              letterSpacing: 2.0,
+              fontSize: 11,
+            ),
       ),
     );
   }

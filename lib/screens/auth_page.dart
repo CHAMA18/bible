@@ -15,6 +15,16 @@ class AuthPage extends StatefulWidget {
 class _AuthPageState extends State<AuthPage> {
   bool _obscurePassword = true;
   bool _rememberMe = false;
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +57,7 @@ class _AuthPageState extends State<AuthPage> {
   Widget _buildLeftPanel(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
+
     return Container(
       color: const Color(0xFFF0EEE9), // surface-container
       child: Stack(
@@ -62,7 +72,7 @@ class _AuthPageState extends State<AuthPage> {
               fit: BoxFit.none,
             ),
           ),
-          
+
           // Content
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 48.0),
@@ -73,7 +83,8 @@ class _AuthPageState extends State<AuthPage> {
                 AppLogo(
                   size: 64,
                   radius: 20,
-                  backgroundColor: colorScheme.primaryContainer.withValues(alpha: 0.18),
+                  backgroundColor:
+                      colorScheme.primaryContainer.withValues(alpha: 0.18),
                   padding: const EdgeInsets.all(4),
                 ),
                 const SizedBox(height: 24),
@@ -135,7 +146,7 @@ class _AuthPageState extends State<AuthPage> {
               ],
             ),
           ),
-          
+
           // Bottom gradient fade
           Positioned(
             left: 0,
@@ -163,7 +174,7 @@ class _AuthPageState extends State<AuthPage> {
   Widget _buildRightPanel(BuildContext context, {required bool isDesktop}) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
+
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -176,7 +187,7 @@ class _AuthPageState extends State<AuthPage> {
               fit: BoxFit.cover,
             ),
           ),
-          
+
         Center(
           child: SingleChildScrollView(
             padding: EdgeInsets.symmetric(
@@ -187,16 +198,21 @@ class _AuthPageState extends State<AuthPage> {
               constraints: const BoxConstraints(maxWidth: 400),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: isDesktop ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+                crossAxisAlignment: isDesktop
+                    ? CrossAxisAlignment.start
+                    : CrossAxisAlignment.center,
                 children: [
                   // Header
                   Row(
-                    mainAxisAlignment: isDesktop ? MainAxisAlignment.start : MainAxisAlignment.center,
+                    mainAxisAlignment: isDesktop
+                        ? MainAxisAlignment.start
+                        : MainAxisAlignment.center,
                     children: [
                       AppLogo(
                         size: 40,
                         radius: 12,
-                        backgroundColor: colorScheme.primaryContainer.withValues(alpha: 0.18),
+                        backgroundColor: colorScheme.primaryContainer
+                            .withValues(alpha: 0.18),
                         padding: const EdgeInsets.all(3),
                       ),
                       const SizedBox(width: 12),
@@ -219,13 +235,43 @@ class _AuthPageState extends State<AuthPage> {
                     ),
                   ),
                   const SizedBox(height: 40),
-                  
+
                   // Form
-                  _buildTextField(
-                    context,
-                    label: 'EMAIL ADDRESS',
-                    hintText: 'name@sanctuary.com',
-                    keyboardType: TextInputType.emailAddress,
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        _buildTextField(
+                          context,
+                          label: 'EMAIL ADDRESS',
+                          hintText: 'name@sanctuary.com',
+                          keyboardType: TextInputType.emailAddress,
+                          controller: _emailController,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildTextField(
+                          context,
+                          label: 'PASSWORD',
+                          hintText: '••••••••',
+                          obscureText: _obscurePassword,
+                          controller: _passwordController,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                              color: colorScheme.onSurfaceVariant
+                                  .withValues(alpha: 0.6),
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 16),
                   _buildTextField(
@@ -235,8 +281,11 @@ class _AuthPageState extends State<AuthPage> {
                     obscureText: _obscurePassword,
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                        _obscurePassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                        color:
+                            colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                       ),
                       onPressed: () {
                         setState(() {
@@ -246,7 +295,7 @@ class _AuthPageState extends State<AuthPage> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Remember me & Forgot Password
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -283,7 +332,29 @@ class _AuthPageState extends State<AuthPage> {
                         ],
                       ),
                       TextButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          final email = _emailController.text.trim();
+                          if (email.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content:
+                                    Text('Enter your email address first.'),
+                                backgroundColor: Colors.redAccent,
+                              ),
+                            );
+                            return;
+                          }
+                          context
+                              .read<AuthProvider>()
+                              .sendPasswordReset(email: email);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                  'Password reset email sent. Check your inbox.'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        },
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,
                           minimumSize: Size.zero,
@@ -302,7 +373,7 @@ class _AuthPageState extends State<AuthPage> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Sign In Button
                   Container(
                     width: double.infinity,
@@ -328,10 +399,38 @@ class _AuthPageState extends State<AuthPage> {
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
-                        onTap: () {
-                          // Navigate to home on successful sign in
-                          context.read<AuthProvider>().loginAsUser();
-                          context.go(AppRoutes.home);
+                        onTap: () async {
+                          final authProvider = context.read<AuthProvider>();
+                          final email = _emailController.text.trim();
+                          final password = _passwordController.text;
+
+                          if (email.isEmpty || password.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    'Please enter both email and password.'),
+                                backgroundColor: Colors.redAccent,
+                              ),
+                            );
+                            return;
+                          }
+
+                          final success = await authProvider.signInWithEmail(
+                            email: email,
+                            password: password,
+                          );
+
+                          if (success && mounted) {
+                            context.go(AppRoutes.home);
+                          } else if (mounted &&
+                              authProvider.errorMessage != null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(authProvider.errorMessage!),
+                                backgroundColor: Colors.redAccent,
+                              ),
+                            );
+                          }
                         },
                         borderRadius: BorderRadius.circular(8),
                         child: Row(
@@ -342,7 +441,8 @@ class _AuthPageState extends State<AuthPage> {
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontSize: 18,
                                 fontStyle: FontStyle.italic,
-                                color: const Color(0xFFFDDF9E), // secondary-fixed
+                                color:
+                                    const Color(0xFFFDDF9E), // secondary-fixed
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -358,13 +458,14 @@ class _AuthPageState extends State<AuthPage> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Or enter via
                   Row(
                     children: [
                       Expanded(
                         child: Divider(
-                          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+                          color:
+                              colorScheme.outlineVariant.withValues(alpha: 0.2),
                         ),
                       ),
                       Padding(
@@ -372,36 +473,71 @@ class _AuthPageState extends State<AuthPage> {
                         child: Text(
                           'OR ENTER VIA',
                           style: theme.textTheme.labelSmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                            color: colorScheme.onSurfaceVariant
+                                .withValues(alpha: 0.5),
                             letterSpacing: 2.0,
                           ),
                         ),
                       ),
                       Expanded(
                         child: Divider(
-                          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+                          color:
+                              colorScheme.outlineVariant.withValues(alpha: 0.2),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Social Login
                   Row(
                     children: [
                       Expanded(
                         child: _buildSocialButton(
                           context,
-                          iconUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDbUZaYY6nDTBvn9LB_cxP7_9cK7vN1kspLt2dCihkf4798pH2PMsCrMA6kWmoyCN5ZnuW6L4Ufx8U7-h9K1JM11sPKlCzBcXDc3FqnH8pAb0Hmtd83I8i0DKIc4M4NpkURcsmaCCtI8go28avFli0TlLHwTm3kfv0EkTEw2FdBvdS0F7Mt7aw_w__jlpulQzg3a3IPkz2ufUXN8bm5hZBVl_HLq_JexE87tMgYYcbMENehNMckmDjajbG5rWAf59glZlEXlArKsz4',
-                          label: 'Google',
+                          iconData: Icons.apple,
+                          label: 'Apple ID',
+                          onTap: () async {
+                            final authProvider = context.read<AuthProvider>();
+                            final success =
+                                await authProvider.signInWithApple();
+                            if (success && mounted) {
+                              context.go(AppRoutes.home);
+                            } else if (mounted &&
+                                authProvider.errorMessage != null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(authProvider.errorMessage!),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
+                            }
+                          },
                         ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
                         child: _buildSocialButton(
                           context,
-                          iconData: Icons.apple,
-                          label: 'Apple ID',
+                          iconUrl:
+                              'https://lh3.googleusercontent.com/aida-public/AB6AXuDbUZaYY6nDTBvn9LB_cxP7_9cK7vN1kspLt2dCihkf4798pH2PMsCrMA6kWmoyCN5ZnuW6L4Ufx8U7-h9K1JM11sPKlCzBcXDc3FqnH8pAb0Hmtd83I8i0DKIc4M4NpkURcsmaCCtI8go28avFli0TlLHwTm3kfv0EkTEw2FdBvdS0F7Mt7aw_w__jlpulQzg3a3IPkz2ufUXN8bm5hZBVl_HLq_JexE87tMgYYcbMENehNMckmDjajbG5rWAf59glZlEXlArKsz4',
+                          label: 'Google',
+                          onTap: () async {
+                            final authProvider = context.read<AuthProvider>();
+                            final success =
+                                await authProvider.signInWithGoogle();
+                            if (success && mounted) {
+                              context.go(AppRoutes.home);
+                            } else if (mounted &&
+                                authProvider.errorMessage != null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(authProvider.errorMessage!),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
+                            }
+                          },
                         ),
                       ),
                     ],
@@ -414,14 +550,17 @@ class _AuthPageState extends State<AuthPage> {
                       context,
                       iconData: Icons.person_outline,
                       label: 'Guest Login',
-                      onTap: () {
-                        context.read<AuthProvider>().loginAsGuest();
-                        context.go(AppRoutes.home);
+                      onTap: () async {
+                        final authProvider = context.read<AuthProvider>();
+                        final success = await authProvider.signInAsGuest();
+                        if (success && mounted) {
+                          context.go(AppRoutes.home);
+                        }
                       },
                     ),
                   ),
                   const SizedBox(height: 32),
-                  
+
                   // Sign Up Link
                   Center(
                     child: Wrap(
@@ -452,7 +591,8 @@ class _AuthPageState extends State<AuthPage> {
                               fontWeight: FontWeight.bold,
                               letterSpacing: 1.5,
                               decoration: TextDecoration.underline,
-                              decorationColor: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                              decorationColor: colorScheme.outlineVariant
+                                  .withValues(alpha: 0.3),
                             ),
                           ),
                         ),
@@ -464,7 +604,7 @@ class _AuthPageState extends State<AuthPage> {
             ),
           ),
         ),
-        
+
         // Version info (desktop only)
         if (isDesktop)
           Positioned(
@@ -505,10 +645,11 @@ class _AuthPageState extends State<AuthPage> {
     bool obscureText = false,
     Widget? suffixIcon,
     TextInputType? keyboardType,
+    TextEditingController? controller,
   }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -523,6 +664,7 @@ class _AuthPageState extends State<AuthPage> {
           ),
         ),
         TextFormField(
+          controller: controller,
           obscureText: obscureText,
           keyboardType: keyboardType,
           style: theme.textTheme.labelMedium?.copyWith(
@@ -532,7 +674,8 @@ class _AuthPageState extends State<AuthPage> {
           decoration: InputDecoration(
             hintText: hintText,
             hintStyle: theme.textTheme.labelMedium?.copyWith(
-              color: const Color(0xFFB9B7B6).withValues(alpha: 0.5), // on-tertiary-container
+              color: const Color(0xFFB9B7B6)
+                  .withValues(alpha: 0.5), // on-tertiary-container
               fontWeight: FontWeight.normal,
             ),
             filled: true,
@@ -546,21 +689,24 @@ class _AuthPageState extends State<AuthPage> {
                 color: colorScheme.outlineVariant.withValues(alpha: 0.3),
                 width: 2,
               ),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(4)),
             ),
             enabledBorder: UnderlineInputBorder(
               borderSide: BorderSide(
                 color: colorScheme.outlineVariant.withValues(alpha: 0.3),
                 width: 2,
               ),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(4)),
             ),
             focusedBorder: UnderlineInputBorder(
               borderSide: BorderSide(
                 color: colorScheme.primary,
                 width: 2,
               ),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(4)),
             ),
             suffixIcon: suffixIcon,
           ),
@@ -578,15 +724,16 @@ class _AuthPageState extends State<AuthPage> {
   }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
+
     return Material(
       color: const Color(0xFFF5F3EE), // surface-container-low
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
-        onTap: onTap ?? () {
-          context.read<AuthProvider>().loginAsUser();
-          context.go(AppRoutes.home);
-        },
+        onTap: onTap ??
+            () {
+              context.read<AuthProvider>().loginAsUser();
+              context.go(AppRoutes.home);
+            },
         borderRadius: BorderRadius.circular(8),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
