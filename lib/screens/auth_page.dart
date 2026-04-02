@@ -273,27 +273,6 @@ class _AuthPageState extends State<AuthPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    context,
-                    label: 'PASSWORD',
-                    hintText: '••••••••',
-                    obscureText: _obscurePassword,
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                        color:
-                            colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
-                    ),
-                  ),
                   const SizedBox(height: 24),
 
                   // Remember me & Forgot Password
