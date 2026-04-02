@@ -208,19 +208,6 @@ class _SignupPageState extends State<SignupPage> {
                                             obscureText: _obscurePassword,
                                             controller: _passwordController,
                                           ),
-                                          const SizedBox(height: 40),
-                                          _buildTextField(
-                                            context,
-                                            label: 'EMAIL ADDRESS',
-                                            keyboardType:
-                                                TextInputType.emailAddress,
-                                          ),
-                                          const SizedBox(height: 40),
-                                          _buildTextField(
-                                            context,
-                                            label: 'CREATE PASSWORD',
-                                            obscureText: _obscurePassword,
-                                          ),
                                           const SizedBox(height: 24),
 
                                           // CTA Button
