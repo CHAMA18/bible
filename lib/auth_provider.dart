@@ -111,7 +111,15 @@ class AuthProvider extends ChangeNotifier {
       _setLoading(false);
       return false;
     } catch (e) {
-      _setError('An unexpected error occurred. Please try again.');
+      // Check if this is a Firebase configuration issue
+      final msg = e.toString();
+      if (msg.contains('api-key-not-valid') ||
+          msg.contains('YOUR-') ||
+          msg.contains('API-KEY')) {
+        _setError('Firebase not configured. Run: flutterfire configure');
+      } else {
+        _setError('An unexpected error occurred. Please try again.');
+      }
       _setLoading(false);
       return false;
     }
