@@ -5,87 +5,161 @@
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="Holy Bible – Divine Word & Devotions">
+  
+  <!-- Mobile viewport settings - critical for device-accurate rendering -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Holy Bible – Divine Word & Devotions">
-  <!-- Google Sign-In Client ID (required for web Google Sign-In) -->
-  <!-- Replace with your actual client ID from Firebase Console > Authentication > Sign-in method > Google -->
+  <meta name="format-detection" content="telephone=no">
+  
+  <!-- Google Sign-In Client ID -->
   <meta name="google-signin-client_id" content="YOUR_WEB_CLIENT_ID.apps.googleusercontent.com">
+  
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
   <link rel="icon" type="image/png" href="favicon.png"/>
   <link rel="manifest" href="manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  
   <title>Holy Bible – Divine Word & Devotions</title>
+  
   <style>
+    /* Reset */
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      background: #1a1a1a;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
+      padding: 20px;
+      overflow: auto;
     }
 
-    /* Desktop: show phone frame */
-    #phone-frame {
+    /* iPhone 16 Device Frame - Exact dimensions */
+    #device-frame {
       position: relative;
       width: 393px;
       height: 852px;
       border-radius: 50px;
-      background: #000;
-      box-shadow:
-        0 0 0 2px #333,
+      background: #0a0a0a;
+      box-shadow: 
         0 0 0 4px #1a1a1a,
-        0 0 0 6px #333,
-        0 20px 60px rgba(0,0,0,0.5);
+        0 0 0 5px #333,
+        0 0 0 7px #1a1a1a,
+        0 0 0 8px #222,
+        0 30px 80px rgba(0,0,0,0.6),
+        inset 0 0 2px rgba(255,255,255,0.1);
       overflow: hidden;
     }
 
-    /* Dynamic Island */
-    #phone-frame::before {
+    /* Inner bezel */
+    #device-frame::before {
       content: '';
       position: absolute;
-      top: 12px;
+      inset: 0;
+      border-radius: 50px;
+      border: 3px solid #1a1a1a;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    /* Dynamic Island */
+    #device-frame::after {
+      content: '';
+      position: absolute;
+      top: 11px;
       left: 50%;
       transform: translateX(-50%);
-      width: 126px;
-      height: 36px;
+      width: 120px;
+      height: 35px;
       background: #000;
       border-radius: 20px;
-      z-index: 10001;
+      z-index: 200;
     }
 
-    /* Flutter container fills the phone frame */
-    #phone-frame flutter-view,
-    #phone-frame .flt-gl-placeholder,
-    #phone-frame .flt-glass-pane {
+    /* Screen container - where Flutter renders */
+    #screen-container {
+      position: absolute;
+      top: 11px;
+      left: 11px;
+      right: 11px;
+      bottom: 11px;
+      background: #FBF9F4;
+      border-radius: 40px;
+      overflow: hidden;
+    }
+
+    /* Flutter view fills screen exactly like device */
+    #screen-container flutter-view,
+    #screen-container > flt-glass-pane,
+    #screen-container > flt-renderer {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
       width: 100% !important;
       height: 100% !important;
+      overflow: hidden !important;
+      transform: none !important;
     }
 
-    /* Loading screen inside phone frame */
-    #loading-screen {
-      position: absolute; inset: 0;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      background: #FBF9F4; color: #6B0109;
-      font-family: Georgia, 'Times New Roman', serif;
-      z-index: 10000; transition: opacity 0.4s ease;
-      border-radius: 50px;
+    /* Status bar area (inside screen, below Dynamic Island) */
+    #status-bar-space {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 54px;
+      background: transparent;
+      z-index: 50;
+      pointer-events: none;
     }
-    #loading-screen.fade-out { opacity: 0; pointer-events: none; }
+
+    /* Home indicator */
+    #home-indicator {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 140px;
+      height: 5px;
+      background: rgba(0,0,0,0.4);
+      border-radius: 3px;
+      z-index: 150;
+    }
+
+    /* Loading screen - matches device screen exactly */
+    #loading-screen {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #FBF9F4;
+      color: #6B0109;
+      font-family: Georgia, 'Times New Roman', serif;
+      z-index: 300;
+      transition: opacity 0.4s ease;
+    }
+    #loading-screen.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
     #loading-screen .logo-text {
-      font-size: 24px; font-weight: 600;
-      font-style: italic; letter-spacing: -0.5px;
-      margin-bottom: 32px;
+      font-size: 22px;
+      font-weight: 600;
+      font-style: italic;
+      letter-spacing: -0.5px;
+      margin-bottom: 24px;
     }
     #loading-screen .spinner {
-      width: 32px; height: 32px;
+      width: 28px;
+      height: 28px;
       border: 3px solid #E4E2DD;
       border-top-color: #6B0109;
       border-radius: 50%;
@@ -93,73 +167,78 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Title above phone */
-    #page-title {
+    /* Page title above device */
+    #device-label {
       position: fixed;
-      top: 24px;
+      bottom: 24px;
       left: 50%;
       transform: translateX(-50%);
-      color: #666;
-      font-size: 13px;
-      letter-spacing: 2px;
+      color: #555;
+      font-size: 12px;
+      letter-spacing: 1.5px;
       text-transform: uppercase;
       font-weight: 500;
       white-space: nowrap;
     }
 
-    /* Mobile: full screen, no frame */
+    /* Mobile: Full screen, no frame */
     @media (max-width: 500px) {
-      body { background: #FBF9F4; }
-      #phone-frame {
+      body {
+        background: #FBF9F4;
+        padding: 0;
+      }
+      #device-frame {
         width: 100vw;
         height: 100vh;
         height: 100dvh;
         border-radius: 0;
         box-shadow: none;
       }
-      #phone-frame::before { display: none; }
-      #loading-screen { border-radius: 0; }
-      #page-title { display: none; }
-    }
-
-    /* Tablet-ish: slightly smaller frame */
-    @media (min-width: 501px) and (max-width: 768px) {
-      #phone-frame {
-        width: 375px;
-        height: 812px;
-        border-radius: 44px;
+      #device-frame::before,
+      #device-frame::after,
+      #home-indicator { display: none; }
+      #screen-container {
+        top: 0; left: 0; right: 0; bottom: 0;
+        border-radius: 0;
       }
+      #status-bar-space { height: 47px; }
+      #device-label { display: none; }
     }
   </style>
 </head>
 <body>
-  <div id="page-title">Holy Bible &mdash; iPhone 16 Preview</div>
-  <div id="phone-frame">
-    <div id="loading-screen">
-      <div class="logo-text">Holy Bible</div>
-      <div class="spinner"></div>
+  <div id="device-frame">
+    <div id="screen-container">
+      <div id="status-bar-space"></div>
+      <div id="loading-screen">
+        <div class="logo-text">Holy Bible</div>
+        <div class="spinner"></div>
+      </div>
     </div>
+    <div id="home-indicator"></div>
   </div>
+  <div id="device-label">iPhone 16</div>
 
   <script src="flutter_bootstrap.js" async></script>
   <script>
-    // Move Flutter host element inside the phone frame
-    var phoneFrame = document.getElementById('phone-frame');
-
-    // Watch for Flutter attaching its host element to the body
+    var screenContainer = document.getElementById('screen-container');
+    
+    // Move Flutter elements inside screen container
     var observer = new MutationObserver(function(mutations) {
       for (var i = 0; i < mutations.length; i++) {
         for (var j = 0; j < mutations[i].addedNodes.length; j++) {
           var node = mutations[i].addedNodes[j];
-          if (node.tagName === 'FLUTTER-VIEW' || (node.className && node.className.indexOf('flt') !== -1)) {
-            phoneFrame.appendChild(node);
+          var tag = node.tagName || '';
+          if (tag === 'FLUTTER-VIEW' || tag === 'FLT-GLASS-PANE' || 
+              tag === 'FLT-RENDERER' || (tag.toLowerCase().includes('flt'))) {
+            screenContainer.appendChild(node);
           }
         }
       }
     });
-    observer.observe(document.body, { childList: true });
+    observer.observe(document.body, { childList: true, subtree: true });
 
-    // Hide loading screen on first frame
+    // Hide loading screen
     window.addEventListener('flutter-first-frame', function() {
       var ls = document.getElementById('loading-screen');
       if (ls) { ls.classList.add('fade-out'); setTimeout(function() { ls.remove(); }, 500); }
