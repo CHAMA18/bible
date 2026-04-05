@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "131689649799",
+    "project_id": "bible-ba4b7",
+    "storage_bucket": "bible-ba4b7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:131689649799:android:6c0fb0c899ee1366d94a22",
+        "android_client_info": {
+          "package_name": "com.chama.bible"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDZFiUBbkVZ1bKsrpE6KAUOBn8Na3w0j7M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

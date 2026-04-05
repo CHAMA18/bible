@@ -72,4 +72,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'bible-ba4b7.firebasestorage.app',
     iosBundleId: 'com.chama.bibleApp',
   );
+
 }

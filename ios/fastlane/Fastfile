@@ -1,0 +1,30 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Push a new release build to TestFlight"
+  lane :beta do
+    # Increment build number
+    increment_build_number(
+      build_number: latest_testflight_build_number + 1
+    )
+
+    # Build the app
+    build_app(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      export_method: "app-store",
+      clean: true,
+      output_directory: "./build/ios/ipa"
+    )
+
+    # Upload to TestFlight
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true
+    )
+
+    commit_version_bump(
+      message: "chore: bump build to #{get_build_number} for TestFlight",
+      force: true
+    )
+  end
+end

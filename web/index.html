@@ -19,14 +19,64 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <title>Holy Bible – Divine Word & Devotions</title>
   <style>
-    body { margin: 0; background: #FBF9F4; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #1a1a1a;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* Desktop: show phone frame */
+    #phone-frame {
+      position: relative;
+      width: 393px;
+      height: 852px;
+      border-radius: 50px;
+      background: #000;
+      box-shadow:
+        0 0 0 2px #333,
+        0 0 0 4px #1a1a1a,
+        0 0 0 6px #333,
+        0 20px 60px rgba(0,0,0,0.5);
+      overflow: hidden;
+    }
+
+    /* Dynamic Island */
+    #phone-frame::before {
+      content: '';
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 126px;
+      height: 36px;
+      background: #000;
+      border-radius: 20px;
+      z-index: 10001;
+    }
+
+    /* Flutter container fills the phone frame */
+    #phone-frame flutter-view,
+    #phone-frame .flt-gl-placeholder,
+    #phone-frame .flt-glass-pane {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    /* Loading screen inside phone frame */
     #loading-screen {
-      position: fixed; inset: 0;
+      position: absolute; inset: 0;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
       background: #FBF9F4; color: #6B0109;
       font-family: Georgia, 'Times New Roman', serif;
-      z-index: 99999; transition: opacity 0.4s ease;
+      z-index: 10000; transition: opacity 0.4s ease;
+      border-radius: 50px;
     }
     #loading-screen.fade-out { opacity: 0; pointer-events: none; }
     #loading-screen .logo-text {
@@ -42,15 +92,74 @@
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Title above phone */
+    #page-title {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #666;
+      font-size: 13px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    /* Mobile: full screen, no frame */
+    @media (max-width: 500px) {
+      body { background: #FBF9F4; }
+      #phone-frame {
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        border-radius: 0;
+        box-shadow: none;
+      }
+      #phone-frame::before { display: none; }
+      #loading-screen { border-radius: 0; }
+      #page-title { display: none; }
+    }
+
+    /* Tablet-ish: slightly smaller frame */
+    @media (min-width: 501px) and (max-width: 768px) {
+      #phone-frame {
+        width: 375px;
+        height: 812px;
+        border-radius: 44px;
+      }
+    }
   </style>
 </head>
 <body>
-  <div id="loading-screen">
-    <div class="logo-text">Holy Bible</div>
-    <div class="spinner"></div>
+  <div id="page-title">Holy Bible &mdash; iPhone 16 Preview</div>
+  <div id="phone-frame">
+    <div id="loading-screen">
+      <div class="logo-text">Holy Bible</div>
+      <div class="spinner"></div>
+    </div>
   </div>
+
   <script src="flutter_bootstrap.js" async></script>
   <script>
+    // Move Flutter host element inside the phone frame
+    var phoneFrame = document.getElementById('phone-frame');
+
+    // Watch for Flutter attaching its host element to the body
+    var observer = new MutationObserver(function(mutations) {
+      for (var i = 0; i < mutations.length; i++) {
+        for (var j = 0; j < mutations[i].addedNodes.length; j++) {
+          var node = mutations[i].addedNodes[j];
+          if (node.tagName === 'FLUTTER-VIEW' || (node.className && node.className.indexOf('flt') !== -1)) {
+            phoneFrame.appendChild(node);
+          }
+        }
+      }
+    });
+    observer.observe(document.body, { childList: true });
+
+    // Hide loading screen on first frame
     window.addEventListener('flutter-first-frame', function() {
       var ls = document.getElementById('loading-screen');
       if (ls) { ls.classList.add('fade-out'); setTimeout(function() { ls.remove(); }, 500); }

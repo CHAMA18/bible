@@ -2,7 +2,7 @@ name: bible_app
 description: "Holy Bible – Divine Word & Devotions"
 publish_to: "none"
 
-version: 1.0.0+3
+version: 1.0.0+4
 
 environment:
   sdk: ^3.6.0
@@ -18,8 +18,8 @@ dependencies:
   provider: ^6.1.2
 
   # Firebase
-  firebase_core: ^3.8.1
-  firebase_auth: ^5.4.1
+  firebase_core: 4.4.0
+  firebase_auth: 6.1.4
 
   # Social Auth
   google_sign_in: ^6.2.2
