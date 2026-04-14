@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../auth_provider.dart';
 import '../nav.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/app_drawer.dart';
@@ -13,12 +15,13 @@ class ProfilePage extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
+    final isGuest = context.watch<AuthProvider>().isGuest;
 
     return Scaffold(
       extendBody: true,
       extendBodyBehindAppBar: true,
       backgroundColor: colorScheme.surface,
-      drawer: const AppDrawer(currentRoute: AppRoutes.profile),
+      drawer: isGuest ? null : const AppDrawer(currentRoute: AppRoutes.profile),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: ClipRRect(
@@ -40,7 +43,7 @@ class ProfilePage extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Builder(
+                  isGuest ? const SizedBox(width: 48) : Builder(
                     builder: (context) => IconButton(
                       icon: Icon(Icons.menu, color: colorScheme.primary),
                       onPressed: () {
@@ -55,11 +58,24 @@ class ProfilePage extends StatelessWidget {
                       color: colorScheme.onSurface,
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(Icons.settings, color: colorScheme.primary),
-                    onPressed: () {
-                      context.push(AppRoutes.settings);
-                    },
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.logout, color: colorScheme.error),
+                        onPressed: () {
+                          context.read<AuthProvider>().logout();
+                          context.go(AppRoutes.auth);
+                        },
+                        tooltip: 'Log Out',
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.settings, color: colorScheme.primary),
+                        onPressed: () {
+                          context.push(AppRoutes.settings);
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -73,7 +89,7 @@ class ProfilePage extends StatelessWidget {
             child: SingleChildScrollView(
               padding: EdgeInsets.only(
                 top: 120 + MediaQuery.of(context).padding.top,
-                bottom: 120,
+                bottom: 180,
                 left: 24,
                 right: 24,
               ),

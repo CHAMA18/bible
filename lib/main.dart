@@ -4,6 +4,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'theme_provider.dart';
+import 'settings_provider.dart';
 import 'auth_provider.dart';
 import 'firebase_options.dart';
 import 'theme.dart';
@@ -31,6 +32,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => SettingsProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
       ],
       child: const MyApp(),

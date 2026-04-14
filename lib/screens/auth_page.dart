@@ -174,10 +174,10 @@ class _AuthPageState extends State<AuthPage> {
   Widget _buildRightPanel(BuildContext context, {required bool isDesktop}) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-
-    return Stack(
-      fit: StackFit.expand,
-      children: [
+    return SafeArea(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
         if (!isDesktop)
           // Mobile background image
           Opacity(
@@ -614,8 +614,9 @@ class _AuthPageState extends State<AuthPage> {
             ),
           ),
       ],
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildTextField(
     BuildContext context, {

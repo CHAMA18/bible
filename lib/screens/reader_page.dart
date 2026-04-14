@@ -1,14 +1,26 @@
 import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'book_selector.dart';
 import '../widgets/app_bottom_nav.dart';
-import '../nav.dart';
+import 'package:provider/provider.dart';
+import 'package:bible_app/auth_provider.dart';
+import 'package:bible_app/theme_provider.dart';
+import 'package:bible_app/nav.dart';
 import '../widgets/app_drawer.dart';
+import 'package:bible_app/settings_provider.dart';
 
 class ReaderPage extends StatefulWidget {
-  const ReaderPage({super.key});
+  final String? initialBook;
+  final int? initialChapter;
+
+  const ReaderPage({
+    super.key,
+    this.initialBook,
+    this.initialChapter,
+  });
 
   @override
   State<ReaderPage> createState() => _ReaderPageState();
@@ -17,9 +29,9 @@ class ReaderPage extends StatefulWidget {
 class _ReaderPageState extends State<ReaderPage> {
   // Mock settings for reader config modal
   bool _isSettingsOpen = false;
-  String _currentBook = 'John';
-  int _currentChapter = 1;
-  String _currentVersion = 'en-kjv';
+  late String _currentBook;
+  late int _currentChapter;
+  String _currentVersion = 'kjv';
 
   // Settings state
   double _fontSize = 18;
@@ -32,7 +44,24 @@ class _ReaderPageState extends State<ReaderPage> {
   @override
   void initState() {
     super.initState();
-    _fetchChapterVerses();
+    _currentBook = widget.initialBook ?? 'John';
+    _currentChapter = widget.initialChapter ?? 1;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final settings = context.read<SettingsProvider>();
+      _currentVersion = settings.currentTranslationId;
+      _fetchChapterVerses();
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final settings = context.watch<SettingsProvider>();
+    if (settings.currentTranslationId != _currentVersion && !_isLoading) {
+      _currentVersion = settings.currentTranslationId;
+      _fetchChapterVerses();
+    }
   }
 
   Future<void> _fetchChapterVerses() async {
@@ -42,44 +71,26 @@ class _ReaderPageState extends State<ReaderPage> {
       _hasError = false;
     });
 
-    final formattedBook = _currentBook.toLowerCase().replaceAll(' ', '-');
-    int verseNum = 1;
-    bool hasMore = true;
-    final List<String> newVerses = [];
-
     try {
-      // Fetch in small batches to improve loading speed
-      while (hasMore) {
-        final List<Future<http.Response>> requests = [];
-        for (int i = 0; i < 5; i++) {
-          final url =
-              'https://cdn.jsdelivr.net/gh/wldeh/bible-api/bibles/$_currentVersion/books/$formattedBook/chapters/$_currentChapter/verses/${verseNum + i}.json';
-          requests.add(http.get(Uri.parse(url)));
-        }
+      final query = '$_currentBook $_currentChapter';
+      var url = 'https://bible-api.com/${Uri.encodeComponent(query)}?translation=$_currentVersion';
+      var response = await http.get(Uri.parse(url));
 
-        final responses = await Future.wait(requests);
-        bool anyFailed = false;
-
-        for (var response in responses) {
-          if (response.statusCode == 200) {
-            final data = jsonDecode(response.body);
-            newVerses.add(data['text']);
-          } else {
-            anyFailed = true;
-            break;
-          }
-        }
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final versesData = data['verses'] as List;
+        final newVerses = versesData.map((v) => v['text'].toString().trim()).toList();
 
         if (mounted) {
           setState(() {
-            _verses = List.from(newVerses);
+            _verses = newVerses;
           });
         }
-
-        if (anyFailed) {
-          hasMore = false;
-        } else {
-          verseNum += 5;
+      } else {
+        if (mounted) {
+          setState(() {
+            _hasError = true;
+          });
         }
       }
     } catch (e) {
@@ -198,10 +209,7 @@ class _ReaderPageState extends State<ReaderPage> {
               child: Icon(
                 Icons.flare,
                 size: 36,
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.2),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
               ),
             ),
           ),
@@ -223,10 +231,7 @@ class _ReaderPageState extends State<ReaderPage> {
                     Container(
                       padding: const EdgeInsets.all(32),
                       decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest
-                            .withValues(alpha: 0.4),
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Column(
@@ -234,38 +239,25 @@ class _ReaderPageState extends State<ReaderPage> {
                         children: [
                           Text(
                             'Scholar\'s Note'.toUpperCase(),
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   letterSpacing: 2.0,
                                 ),
                           ),
                           const SizedBox(height: 12),
                           Text(
                             '"The Greek word \'Logos\' implies more than just speech; it signifies the divine reason implicit in the cosmos."',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                   fontStyle: FontStyle.italic,
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface,
+                                  color: Theme.of(context).colorScheme.onSurface,
                                   height: 1.6,
                                 ),
                           ),
                           const SizedBox(height: 16),
                           Text(
                             '— Matthew Henry\'s Commentary',
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(
-                                  color:
-                                      Theme.of(context).colorScheme.secondary,
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.secondary,
                                   fontSize: 10,
                                 ),
                           ),
@@ -353,8 +345,7 @@ class _ReaderPageState extends State<ReaderPage> {
       default:
         surfaceColor = const Color(0xFFFBF9F4);
         onSurfaceColor = const Color(0xFF58413F);
-        surfaceContainerHighestColor =
-            baseTheme.colorScheme.surfaceContainerHighest;
+        surfaceContainerHighestColor = baseTheme.colorScheme.surfaceContainerHighest;
         secondaryContainerColor = baseTheme.colorScheme.secondaryContainer;
         break;
     }
@@ -382,19 +373,18 @@ class _ReaderPageState extends State<ReaderPage> {
           final colorScheme = theme.colorScheme;
           final textTheme = theme.textTheme;
 
+          final isGuest = context.watch<AuthProvider>().isGuest;
+
           return Scaffold(
             backgroundColor: colorScheme.surface,
-            drawer: const AppDrawer(currentRoute: AppRoutes.home),
+            drawer: isGuest ? null : const AppDrawer(currentRoute: AppRoutes.home),
             body: Stack(
               children: [
                 // Main Scrolling Content
                 Positioned.fill(
                   child: SingleChildScrollView(
                     padding: EdgeInsets.only(
-                      top: 80 +
-                          MediaQuery.of(context)
-                              .padding
-                              .top, // Header height + padding
+                      top: 80 + MediaQuery.of(context).padding.top, // Header height + padding
                       bottom: 180, // Bottom nav + floating bar padding
                       left: 24,
                       right: 24,
@@ -407,8 +397,7 @@ class _ReaderPageState extends State<ReaderPage> {
                           children: [
                             // Chapter Header
                             Padding(
-                              padding:
-                                  const EdgeInsets.only(top: 32, bottom: 64),
+                              padding: const EdgeInsets.only(top: 32, bottom: 64),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -434,8 +423,7 @@ class _ReaderPageState extends State<ReaderPage> {
                                   Container(
                                     height: 1,
                                     width: 48,
-                                    color: colorScheme.outlineVariant
-                                        .withValues(alpha: 0.3),
+                                    color: colorScheme.outlineVariant.withValues(alpha: 0.3),
                                   ),
                                 ],
                               ),
@@ -461,16 +449,15 @@ class _ReaderPageState extends State<ReaderPage> {
                       child: Container(
                         height: 64 + MediaQuery.of(context).padding.top,
                         padding: EdgeInsets.only(
-                          top: MediaQuery.of(context).padding.top,
-                          left: 16,
-                          right: 16,
+                          top: MediaQuery.of(context).padding.top, // handle status bar
+                          left: 24,
+                          right: 24,
                         ),
                         decoration: BoxDecoration(
-                          color: colorScheme.surface.withValues(alpha: 0.95),
+                          color: colorScheme.surface.withValues(alpha: 0.85),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF58413F)
-                                  .withValues(alpha: 0.1),
+                              color: const Color(0xFF58413F).withValues(alpha: 0.06),
                               blurRadius: 24,
                               offset: const Offset(0, 12),
                             ),
@@ -479,17 +466,14 @@ class _ReaderPageState extends State<ReaderPage> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Builder(
+                            isGuest ? const SizedBox(width: 48) : Builder(
                               builder: (context) => IconButton(
                                 onPressed: () {
                                   Scaffold.of(context).openDrawer();
                                 },
-                                icon: Icon(Icons.menu,
-                                    color: const Color(0xFF6B0109), size: 26),
+                                icon: Icon(Icons.menu, color: colorScheme.primary),
                                 style: IconButton.styleFrom(
-                                  hoverColor: colorScheme
-                                      .surfaceContainerHighest
-                                      .withValues(alpha: 0.5),
+                                  hoverColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                                 ),
                               ),
                             ),
@@ -497,58 +481,80 @@ class _ReaderPageState extends State<ReaderPage> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
-                                  icon: Icon(Icons.chevron_left,
-                                      color: const Color(0xFF6B0109), size: 28),
+                                  icon: Icon(Icons.chevron_left, color: colorScheme.primary),
                                   onPressed: _goToPrevChapter,
                                 ),
                                 GestureDetector(
                                   onTap: () {
                                     _showBookSelector();
                                   },
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 4),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          '$_currentBook $_currentChapter',
-                                          style: textTheme.titleLarge?.copyWith(
-                                            fontStyle: FontStyle.italic,
-                                            fontWeight: FontWeight.w600,
-                                            color: const Color(0xFF6B0109),
-                                            fontSize: 22,
-                                          ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        '$_currentBook $_currentChapter',
+                                        style: textTheme.titleLarge?.copyWith(
+                                          fontStyle: FontStyle.italic,
+                                          color: colorScheme.onSurface,
+                                          fontSize: 20,
                                         ),
-                                        const SizedBox(width: 6),
-                                        Icon(
-                                          Icons.keyboard_arrow_down,
-                                          size: 20,
-                                          color: const Color(0xFF6B0109),
-                                        ),
-                                      ],
-                                    ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Icon(
+                                        Icons.keyboard_arrow_down,
+                                        size: 16,
+                                        color: colorScheme.secondary,
+                                      ),
+                                    ],
                                   ),
                                 ),
                                 IconButton(
-                                  icon: Icon(Icons.chevron_right,
-                                      color: const Color(0xFF6B0109), size: 28),
+                                  icon: Icon(Icons.chevron_right, color: colorScheme.primary),
                                   onPressed: _goToNextChapter,
                                 ),
                               ],
                             ),
-                            IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  _isSettingsOpen = !_isSettingsOpen;
-                                });
-                              },
-                              icon: Icon(Icons.text_fields,
-                                  color: const Color(0xFF6B0109), size: 24),
-                              style: IconButton.styleFrom(
-                                hoverColor: colorScheme.surfaceContainerHighest
-                                    .withValues(alpha: 0.5),
-                              ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (isGuest)
+                                  IconButton(
+                                    onPressed: () {
+                                      final provider = context.read<ThemeProvider>();
+                                      provider.setThemeMode(
+                                        theme.brightness == Brightness.dark
+                                            ? ThemeMode.light
+                                            : ThemeMode.dark,
+                                      );
+                                    },
+                                    icon: Icon(
+                                      theme.brightness == Brightness.dark
+                                          ? Icons.light_mode
+                                          : Icons.dark_mode,
+                                      color: colorScheme.primary,
+                                    ),
+                                    tooltip: 'Toggle Theme',
+                                  ),
+                                IconButton(
+                                  onPressed: () {
+                                    context.read<AuthProvider>().logout();
+                                    context.go(AppRoutes.auth);
+                                  },
+                                  icon: Icon(Icons.logout, color: colorScheme.error),
+                                  tooltip: 'Log Out',
+                                ),
+                                IconButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _isSettingsOpen = !_isSettingsOpen;
+                                    });
+                                  },
+                                  icon: Icon(Icons.text_fields, color: colorScheme.primary),
+                                  style: IconButton.styleFrom(
+                                    hoverColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -559,7 +565,7 @@ class _ReaderPageState extends State<ReaderPage> {
 
                 // Contextual Reader Bar
                 Positioned(
-                  bottom: 112,
+                  bottom: 160,
                   left: 0,
                   right: 0,
                   child: Center(
@@ -568,19 +574,16 @@ class _ReaderPageState extends State<ReaderPage> {
                       child: BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                           decoration: BoxDecoration(
                             color: colorScheme.surface.withValues(alpha: 0.9),
                             borderRadius: BorderRadius.circular(32),
                             border: Border.all(
-                              color: colorScheme.outlineVariant
-                                  .withValues(alpha: 0.1),
+                              color: colorScheme.outlineVariant.withValues(alpha: 0.1),
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF58413F)
-                                    .withValues(alpha: 0.15),
+                                color: const Color(0xFF58413F).withValues(alpha: 0.15),
                                 blurRadius: 48,
                                 offset: const Offset(0, 24),
                               ),
@@ -589,41 +592,41 @@ class _ReaderPageState extends State<ReaderPage> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    'KJV',
-                                    style: textTheme.labelSmall?.copyWith(
-                                      color: colorScheme.onSurfaceVariant,
+                              GestureDetector(
+                                onTap: () {
+                                  context.push(AppRoutes.translation);
+                                },
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      bibleTranslations
+                                          .where((t) => t.id == _currentVersion)
+                                          .firstOrNull
+                                          ?.abbreviation ??
+                                          _currentVersion.toUpperCase(),
+                                      style: textTheme.labelSmall?.copyWith(
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Icon(Icons.expand_more,
-                                      size: 16, color: colorScheme.secondary),
-                                ],
+                                    const SizedBox(width: 4),
+                                    Icon(Icons.expand_more, size: 16, color: colorScheme.secondary),
+                                  ],
+                                ),
                               ),
                               Container(
                                 height: 24,
                                 width: 1,
-                                margin:
-                                    const EdgeInsets.symmetric(horizontal: 24),
-                                color: colorScheme.outlineVariant
-                                    .withValues(alpha: 0.3),
+                                margin: const EdgeInsets.symmetric(horizontal: 24),
+                                color: colorScheme.outlineVariant.withValues(alpha: 0.3),
                               ),
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.bookmark_border,
-                                      color: colorScheme.onSurfaceVariant,
-                                      size: 20),
+                                  Icon(Icons.bookmark_border, color: colorScheme.onSurfaceVariant, size: 20),
                                   const SizedBox(width: 24),
-                                  Icon(Icons.share_outlined,
-                                      color: colorScheme.onSurfaceVariant,
-                                      size: 20),
+                                  Icon(Icons.share_outlined, color: colorScheme.onSurfaceVariant, size: 20),
                                   const SizedBox(width: 24),
-                                  Icon(Icons.play_circle_outline,
-                                      color: colorScheme.onSurfaceVariant,
-                                      size: 20),
+                                  Icon(Icons.play_circle_outline, color: colorScheme.onSurfaceVariant, size: 20),
                                 ],
                               ),
                             ],
@@ -642,7 +645,7 @@ class _ReaderPageState extends State<ReaderPage> {
                   child: ClipRect(
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-                      child: AppBottomNav(currentRoute: AppRoutes.home),
+                      child: AppBottomNav(currentRoute: AppRoutes.bible),
                     ),
                   ),
                 ),
@@ -663,14 +666,12 @@ class _ReaderPageState extends State<ReaderPage> {
                           child: Align(
                             alignment: Alignment.bottomCenter,
                             child: GestureDetector(
-                              onTap:
-                                  () {}, // Prevent tap from closing when clicking inside
+                              onTap: () {}, // Prevent tap from closing when clicking inside
                               child: Container(
                                 padding: const EdgeInsets.all(32),
                                 decoration: BoxDecoration(
                                   color: colorScheme.surface,
-                                  borderRadius: const BorderRadius.vertical(
-                                      top: Radius.circular(32)),
+                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
                                 ),
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
@@ -680,13 +681,10 @@ class _ReaderPageState extends State<ReaderPage> {
                                       child: Container(
                                         width: 48,
                                         height: 6,
-                                        margin:
-                                            const EdgeInsets.only(bottom: 32),
+                                        margin: const EdgeInsets.only(bottom: 32),
                                         decoration: BoxDecoration(
-                                          color: colorScheme.outlineVariant
-                                              .withValues(alpha: 0.3),
-                                          borderRadius:
-                                              BorderRadius.circular(3),
+                                          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                                          borderRadius: BorderRadius.circular(3),
                                         ),
                                       ),
                                     ),
@@ -702,24 +700,19 @@ class _ReaderPageState extends State<ReaderPage> {
                                     Container(
                                       padding: const EdgeInsets.all(16),
                                       decoration: BoxDecoration(
-                                        color: colorScheme
-                                            .surfaceContainerHighest
-                                            .withValues(alpha: 0.3),
+                                        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                                         borderRadius: BorderRadius.circular(16),
                                       ),
                                       child: Row(
                                         children: [
-                                          Icon(Icons.text_fields,
-                                              size: 16,
-                                              color: colorScheme.onSurface),
+                                          Icon(Icons.text_fields, size: 16, color: colorScheme.onSurface),
                                           Expanded(
                                             child: Slider(
                                               value: _fontSize,
                                               min: 12,
                                               max: 24,
                                               activeColor: colorScheme.primary,
-                                              inactiveColor:
-                                                  colorScheme.outlineVariant,
+                                              inactiveColor: colorScheme.outlineVariant,
                                               onChanged: (val) {
                                                 setState(() {
                                                   _fontSize = val;
@@ -727,9 +720,7 @@ class _ReaderPageState extends State<ReaderPage> {
                                               },
                                             ),
                                           ),
-                                          Icon(Icons.text_fields,
-                                              size: 24,
-                                              color: colorScheme.onSurface),
+                                          Icon(Icons.text_fields, size: 24, color: colorScheme.onSurface),
                                         ],
                                       ),
                                     ),
@@ -737,26 +728,11 @@ class _ReaderPageState extends State<ReaderPage> {
                                     // Themes
                                     Row(
                                       children: [
-                                        _buildThemeOption(
-                                            context,
-                                            'Parchment',
-                                            const Color(0xFFFBF9F4),
-                                            const Color(0xFF58413F),
-                                            _currentTheme == 'Parchment'),
+                                        _buildThemeOption(context, 'Parchment', const Color(0xFFFBF9F4), const Color(0xFF58413F), _currentTheme == 'Parchment'),
                                         const SizedBox(width: 16),
-                                        _buildThemeOption(
-                                            context,
-                                            'Midnight',
-                                            const Color(0xFF1B1C19),
-                                            const Color(0xFFFBF9F4),
-                                            _currentTheme == 'Midnight'),
+                                        _buildThemeOption(context, 'Midnight', const Color(0xFF1B1C19), const Color(0xFFFBF9F4), _currentTheme == 'Midnight'),
                                         const SizedBox(width: 16),
-                                        _buildThemeOption(
-                                            context,
-                                            'Paper',
-                                            Colors.white,
-                                            Colors.black,
-                                            _currentTheme == 'Paper'),
+                                        _buildThemeOption(context, 'Paper', Colors.white, Colors.black, _currentTheme == 'Paper'),
                                       ],
                                     ),
                                     const SizedBox(height: 32),
@@ -897,8 +873,8 @@ class _ReaderPageState extends State<ReaderPage> {
     );
   }
 
-  Widget _buildThemeOption(BuildContext context, String label, Color bg,
-      Color text, bool isSelected) {
+
+  Widget _buildThemeOption(BuildContext context, String label, Color bg, Color text, bool isSelected) {
     return Expanded(
       child: AspectRatio(
         aspectRatio: 16 / 9,
@@ -913,12 +889,7 @@ class _ReaderPageState extends State<ReaderPage> {
               color: bg,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isSelected
-                    ? const Color(0xFF58413F)
-                    : Theme.of(context)
-                        .colorScheme
-                        .outlineVariant
-                        .withValues(alpha: 0.2),
+                color: isSelected ? const Color(0xFF58413F) : Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.2),
                 width: isSelected ? 2 : 1,
               ),
             ),
@@ -926,9 +897,9 @@ class _ReaderPageState extends State<ReaderPage> {
             child: Text(
               label,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: text,
-                    fontWeight: FontWeight.bold,
-                  ),
+                color: text,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ),

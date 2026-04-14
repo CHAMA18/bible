@@ -1,5 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../auth_provider.dart';
+import '../theme_provider.dart';
 import '../nav.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/app_drawer.dart';
@@ -19,12 +23,13 @@ class _LibraryPageState extends State<LibraryPage> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
+    final isGuest = context.watch<AuthProvider>().isGuest;
 
     return Scaffold(
       key: _scaffoldKey,
       extendBody: true,
       extendBodyBehindAppBar: true,
-      drawer: const AppDrawer(currentRoute: AppRoutes.library),
+      drawer: isGuest ? null : const AppDrawer(currentRoute: AppRoutes.library),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: ClipRect(
@@ -35,20 +40,37 @@ class _LibraryPageState extends State<LibraryPage> {
               elevation: 0,
               scrolledUnderElevation: 0,
               centerTitle: true,
-              leading: IconButton(
+              leading: isGuest ? null : IconButton(
                 icon: Icon(Icons.menu, color: colorScheme.primary),
                 onPressed: () => _scaffoldKey.currentState?.openDrawer(),
               ),
-              title: Text(
-                'The Digital Codex',
-                style: textTheme.headlineSmall?.copyWith(
-                  fontStyle: FontStyle.italic,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.5,
-                  color: colorScheme.onSurface,
-                ),
-              ),
               actions: [
+                if (isGuest)
+                  IconButton(
+                    icon: Icon(
+                      theme.brightness == Brightness.dark
+                          ? Icons.light_mode
+                          : Icons.dark_mode,
+                      color: colorScheme.primary,
+                    ),
+                    onPressed: () {
+                      final provider = context.read<ThemeProvider>();
+                      provider.setThemeMode(
+                        theme.brightness == Brightness.dark
+                            ? ThemeMode.light
+                            : ThemeMode.dark,
+                      );
+                    },
+                    tooltip: 'Toggle Theme',
+                  ),
+                IconButton(
+                  icon: Icon(Icons.logout, color: colorScheme.error),
+                  onPressed: () {
+                    context.read<AuthProvider>().logout();
+                    context.go(AppRoutes.auth);
+                  },
+                  tooltip: 'Log Out',
+                ),
                 IconButton(
                   icon: Icon(Icons.menu_book, color: colorScheme.primary),
                   onPressed: () {},
@@ -63,7 +85,7 @@ class _LibraryPageState extends State<LibraryPage> {
           SingleChildScrollView(
             padding: EdgeInsets.only(
               top: MediaQuery.of(context).padding.top + 90,
-              bottom: 120, // space for nav and floating bar
+              bottom: 180, // space for nav and floating bar
               left: 24,
               right: 24,
             ),
@@ -83,7 +105,7 @@ class _LibraryPageState extends State<LibraryPage> {
           ),
           // Contextual Reader Bar
           Positioned(
-            bottom: 110, // above bottom nav
+            bottom: 160, // above bottom nav
             left: 0,
             right: 0,
             child: Center(

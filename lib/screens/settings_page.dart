@@ -6,6 +6,8 @@ import '../nav.dart';
 import '../widgets/language_selection_sheet.dart';
 import '../widgets/theme_selection_sheet.dart';
 import '../theme_provider.dart';
+import '../settings_provider.dart';
+import 'translation_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -81,13 +83,21 @@ class _SettingsPageState extends State<SettingsPage> {
                   subtitle: 'Font size, spacing, and justification',
                   onTap: () {},
                 ),
-                _buildSettingsItem(
-                  context,
-                  icon: Icons.language_rounded,
-                  title: 'Translation',
-                  subtitle: 'New International Version (NIV)',
-                  onTap: () {
-                    context.push(AppRoutes.translation);
+                Consumer<SettingsProvider>(
+                  builder: (context, settings, _) {
+                    final currentTranslation = bibleTranslations.firstWhere(
+                      (t) => t.id == settings.currentTranslationId,
+                      orElse: () => bibleTranslations.first,
+                    );
+                    return _buildSettingsItem(
+                      context,
+                      icon: Icons.language_rounded,
+                      title: 'Translation',
+                      subtitle: '${currentTranslation.name} (${currentTranslation.abbreviation})',
+                      onTap: () {
+                        context.push(AppRoutes.translation);
+                      },
+                    );
                   },
                 ),
                 _buildDivider(context),

@@ -14,49 +14,49 @@ class ExploreCategoryPage extends StatelessWidget {
     required this.imageUrl,
   });
 
-  List<Map<String, String>> _getContentForCategory() {
+  List<Map<String, dynamic>> _getContentForCategory() {
     final lowerTitle = title.toLowerCase();
     if (lowerTitle.contains('people')) {
       return [
-        {'title': 'Moses', 'subtitle': 'The Lawgiver and Prophet', 'icon': 'person'},
-        {'title': 'David', 'subtitle': 'The Shepherd King', 'icon': 'person'},
-        {'title': 'Elijah', 'subtitle': 'Prophet of Fire', 'icon': 'person'},
-        {'title': 'Paul', 'subtitle': 'Apostle to the Gentiles', 'icon': 'person'},
-        {'title': 'Mary', 'subtitle': 'Mother of Jesus', 'icon': 'person'},
-        {'title': 'Abraham', 'subtitle': 'Father of Many Nations', 'icon': 'person'},
+        {'title': 'Moses', 'subtitle': 'The Lawgiver and Prophet', 'icon': 'person', 'book': 'Exodus', 'chapter': 2},
+        {'title': 'David', 'subtitle': 'The Shepherd King', 'icon': 'person', 'book': '1 Samuel', 'chapter': 16},
+        {'title': 'Elijah', 'subtitle': 'Prophet of Fire', 'icon': 'person', 'book': '1 Kings', 'chapter': 17},
+        {'title': 'Paul', 'subtitle': 'Apostle to the Gentiles', 'icon': 'person', 'book': 'Acts', 'chapter': 9},
+        {'title': 'Mary', 'subtitle': 'Mother of Jesus', 'icon': 'person', 'book': 'Luke', 'chapter': 1},
+        {'title': 'Abraham', 'subtitle': 'Father of Many Nations', 'icon': 'person', 'book': 'Genesis', 'chapter': 12},
       ];
     } else if (lowerTitle.contains('miracle')) {
       return [
-        {'title': 'Feeding the 5000', 'subtitle': 'Multiplying loaves and fishes', 'icon': 'auto_awesome'},
-        {'title': 'Parting the Red Sea', 'subtitle': 'Escape from Egypt', 'icon': 'water'},
-        {'title': 'Water into Wine', 'subtitle': 'The first miracle at Cana', 'icon': 'local_drink'},
-        {'title': 'Walking on Water', 'subtitle': 'Faith amidst the storm', 'icon': 'waves'},
-        {'title': 'Raising Lazarus', 'subtitle': 'Power over death', 'icon': 'accessibility_new'},
+        {'title': 'Feeding the 5000', 'subtitle': 'Multiplying loaves and fishes', 'icon': 'auto_awesome', 'book': 'Matthew', 'chapter': 14},
+        {'title': 'Parting the Red Sea', 'subtitle': 'Escape from Egypt', 'icon': 'water', 'book': 'Exodus', 'chapter': 14},
+        {'title': 'Water into Wine', 'subtitle': 'The first miracle at Cana', 'icon': 'local_drink', 'book': 'John', 'chapter': 2},
+        {'title': 'Walking on Water', 'subtitle': 'Faith amidst the storm', 'icon': 'waves', 'book': 'Matthew', 'chapter': 14},
+        {'title': 'Raising Lazarus', 'subtitle': 'Power over death', 'icon': 'accessibility_new', 'book': 'John', 'chapter': 11},
       ];
     } else if (lowerTitle.contains('parable')) {
       return [
-        {'title': 'The Good Samaritan', 'subtitle': 'Loving your neighbor', 'icon': 'favorite'},
-        {'title': 'The Prodigal Son', 'subtitle': 'Forgiveness and redemption', 'icon': 'home'},
-        {'title': 'The Sower', 'subtitle': 'Hearing the word of God', 'icon': 'eco'},
-        {'title': 'The Mustard Seed', 'subtitle': 'Faith that grows', 'icon': 'grass'},
-        {'title': 'The Lost Sheep', 'subtitle': 'Rejoicing over the found', 'icon': 'pets'},
+        {'title': 'The Good Samaritan', 'subtitle': 'Loving your neighbor', 'icon': 'favorite', 'book': 'Luke', 'chapter': 10},
+        {'title': 'The Prodigal Son', 'subtitle': 'Forgiveness and redemption', 'icon': 'home', 'book': 'Luke', 'chapter': 15},
+        {'title': 'The Sower', 'subtitle': 'Hearing the word of God', 'icon': 'eco', 'book': 'Matthew', 'chapter': 13},
+        {'title': 'The Mustard Seed', 'subtitle': 'Faith that grows', 'icon': 'grass', 'book': 'Matthew', 'chapter': 13},
+        {'title': 'The Lost Sheep', 'subtitle': 'Rejoicing over the found', 'icon': 'pets', 'book': 'Luke', 'chapter': 15},
       ];
     } else if (lowerTitle.contains('geography') || lowerTitle.contains('journey')) {
       return [
-        {'title': 'Jerusalem', 'subtitle': 'The Holy City', 'icon': 'location_city'},
-        {'title': 'Sea of Galilee', 'subtitle': 'Where Jesus taught and walked', 'icon': 'sailing'},
-        {'title': 'Mount Sinai', 'subtitle': 'Where Moses received the Law', 'icon': 'terrain'},
-        {'title': 'Bethlehem', 'subtitle': 'The birthplace of Jesus', 'icon': 'star'},
-        {'title': 'Nazareth', 'subtitle': 'Jesus\' childhood home', 'icon': 'house'},
+        {'title': 'Jerusalem', 'subtitle': 'The Holy City', 'icon': 'location_city', 'book': '2 Samuel', 'chapter': 5},
+        {'title': 'Sea of Galilee', 'subtitle': 'Where Jesus taught and walked', 'icon': 'sailing', 'book': 'Matthew', 'chapter': 4},
+        {'title': 'Mount Sinai', 'subtitle': 'Where Moses received the Law', 'icon': 'terrain', 'book': 'Exodus', 'chapter': 19},
+        {'title': 'Bethlehem', 'subtitle': 'The birthplace of Jesus', 'icon': 'star', 'book': 'Luke', 'chapter': 2},
+        {'title': 'Nazareth', 'subtitle': 'Jesus\' childhood home', 'icon': 'house', 'book': 'Luke', 'chapter': 2},
       ];
     }
     
     // Default fallback
     return [
-      {'title': 'Overview', 'subtitle': 'Introduction to $title', 'icon': 'info'},
-      {'title': 'Key Highlights', 'subtitle': 'Important points', 'icon': 'star'},
-      {'title': 'Historical Context', 'subtitle': 'Background information', 'icon': 'history'},
-      {'title': 'Theological Impact', 'subtitle': 'Significance today', 'icon': 'menu_book'},
+      {'title': 'Overview', 'subtitle': 'Introduction to $title', 'icon': 'info', 'book': 'Genesis', 'chapter': 1},
+      {'title': 'Key Highlights', 'subtitle': 'Important points', 'icon': 'star', 'book': 'Genesis', 'chapter': 1},
+      {'title': 'Historical Context', 'subtitle': 'Background information', 'icon': 'history', 'book': 'Genesis', 'chapter': 1},
+      {'title': 'Theological Impact', 'subtitle': 'Significance today', 'icon': 'menu_book', 'book': 'Genesis', 'chapter': 1},
     ];
   }
 
@@ -212,14 +212,23 @@ class ExploreCategoryPage extends StatelessWidget {
                         child: InkWell(
                           borderRadius: BorderRadius.circular(16),
                           onTap: () {
-                            // Show a quick simple modal or just navigate for feedback
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Opening ${item['title']}...'),
-                                duration: const Duration(seconds: 1),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
+                            if (item['book'] != null && item['chapter'] != null) {
+                              context.push(
+                                '/bible',
+                                extra: {
+                                  'book': item['book'],
+                                  'chapter': item['chapter'],
+                                },
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Opening ${item['title']}...'),
+                                  duration: const Duration(seconds: 1),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            }
                           },
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),

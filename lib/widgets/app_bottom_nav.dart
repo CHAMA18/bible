@@ -18,7 +18,7 @@ class AppBottomNav extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     
     final navContainer = Container(
-      height: 96,
+      height: 80 + MediaQuery.of(context).padding.bottom,
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
       decoration: BoxDecoration(
         color: colorScheme.surface.withValues(alpha: 0.85),
@@ -51,8 +51,12 @@ class AppBottomNav extends StatelessWidget {
               context: context,
               icon: Icons.menu_book,
               label: 'Bible',
-              isActive: false,
-              onTap: () {},
+              isActive: currentRoute == AppRoutes.bible,
+              onTap: () {
+                if (currentRoute != AppRoutes.bible) {
+                  context.go(AppRoutes.bible);
+                }
+              },
             ),
           ),
           Expanded(

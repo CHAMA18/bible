@@ -117,14 +117,15 @@ class _SignupPageState extends State<SignupPage> {
           ),
 
           // 4. Main scrollable layout
-          Column(
-            children: [
-              // Header
-              _buildHeader(context, isTabletOrDesktop),
-
-              // Main Content (Form)
-              Expanded(
-                child: SingleChildScrollView(
+          SafeArea(
+            child: Column(
+              children: [
+                // Header
+                _buildHeader(context, isTabletOrDesktop),
+                
+                // Main Content (Form)
+                Expanded(
+                  child: SingleChildScrollView(
                   child: Column(
                     children: [
                       Padding(
@@ -456,6 +457,7 @@ class _SignupPageState extends State<SignupPage> {
                 ),
               ),
             ],
+          ),
           ),
         ],
       ),

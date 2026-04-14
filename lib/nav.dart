@@ -1,5 +1,6 @@
 import 'package:bible_app/main.dart';
 import 'package:bible_app/screens/reader_page.dart';
+import 'package:bible_app/screens/discover_page.dart';
 import 'package:bible_app/screens/profile_page.dart';
 import 'package:bible_app/screens/search_page.dart';
 import 'package:bible_app/screens/library_page.dart';
@@ -10,6 +11,8 @@ import 'package:bible_app/screens/privacy_policy_page.dart';
 import 'package:bible_app/screens/help_support_page.dart';
 import 'package:bible_app/screens/translation_page.dart';
 import 'package:bible_app/screens/explore_category_page.dart';
+import 'package:bible_app/screens/reading_plans_page.dart';
+import 'package:bible_app/screens/plan_details_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -35,8 +38,21 @@ class AppRouter {
         path: AppRoutes.home,
         name: 'home',
         pageBuilder: (context, state) => const NoTransitionPage(
-          child: ReaderPage(),
+          child: DiscoverPage(),
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.bible,
+        name: 'bible',
+        pageBuilder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return NoTransitionPage(
+            child: ReaderPage(
+              initialBook: extra?['book'] as String?,
+              initialChapter: extra?['chapter'] as int?,
+            ),
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.search,
@@ -91,6 +107,19 @@ class AppRouter {
           );
         },
       ),
+      GoRoute(
+        path: AppRoutes.readingPlans,
+        name: 'readingPlans',
+        builder: (context, state) => const ReadingPlansPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.planDetails,
+        name: 'planDetails',
+        builder: (context, state) {
+          final plan = state.extra as ReadingPlan;
+          return PlanDetailsPage(plan: plan);
+        },
+      ),
     ],
   );
 }
@@ -99,6 +128,7 @@ class AppRoutes {
   static const String auth = '/auth';
   static const String signup = '/signup';
   static const String home = '/';
+  static const String bible = '/bible';
   static const String search = '/search';
   static const String profile = '/profile';
   static const String library = '/library';
@@ -107,4 +137,6 @@ class AppRoutes {
   static const String helpSupport = '/help-support';
   static const String translation = '/translation';
   static const String exploreCategory = '/explore-category';
+  static const String readingPlans = '/reading-plans';
+  static const String planDetails = '/plan-details';
 }

@@ -1,6 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:bible_app/auth_provider.dart';
+import 'package:bible_app/theme_provider.dart';
 import 'package:bible_app/nav.dart';
 import 'package:bible_app/widgets/app_bottom_nav.dart';
 
@@ -13,22 +16,23 @@ class SearchPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isGuest = context.watch<AuthProvider>().isGuest;
     
     return Scaffold(
       extendBody: true,
       backgroundColor: colorScheme.surface,
-      drawer: const AppDrawer(currentRoute: AppRoutes.search),
+      drawer: isGuest ? null : const AppDrawer(currentRoute: AppRoutes.search),
       bottomNavigationBar: const AppBottomNav(currentRoute: AppRoutes.search),
       body: CustomScrollView(
         slivers: [
-          _buildAppBar(context, theme, colorScheme),
+          _buildAppBar(context, theme, colorScheme, isGuest),
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.only(
                 top: 24.0,
                 left: 24.0,
                 right: 24.0,
-                bottom: MediaQuery.of(context).padding.bottom + 120.0,
+                bottom: MediaQuery.of(context).padding.bottom + 160.0,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,7 +51,7 @@ class SearchPage extends StatelessWidget {
     );
   }
 
-  Widget _buildAppBar(BuildContext context, ThemeData theme, ColorScheme colorScheme) {
+  Widget _buildAppBar(BuildContext context, ThemeData theme, ColorScheme colorScheme, bool isGuest) {
     return SliverAppBar(
       automaticallyImplyLeading: false,
       pinned: true,
@@ -86,29 +90,60 @@ class SearchPage extends StatelessWidget {
                 color: colorScheme.onSurface,
               ),
             ),
-            Container(
-              width: 40,
-              height: 40,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.transparent,
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: Builder(
-                  builder: (context) => InkWell(
-                    customBorder: const CircleBorder(),
-                    hoverColor: colorScheme.surfaceContainerHighest,
-                    onTap: () {
-                      Scaffold.of(context).openDrawer();
-                    },
-                    child: Icon(
-                      Icons.menu_book,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isGuest)
+                  IconButton(
+                    icon: Icon(
+                      theme.brightness == Brightness.dark
+                          ? Icons.light_mode
+                          : Icons.dark_mode,
                       color: colorScheme.primary,
+                    ),
+                    onPressed: () {
+                      final provider = context.read<ThemeProvider>();
+                      provider.setThemeMode(
+                        theme.brightness == Brightness.dark
+                            ? ThemeMode.light
+                            : ThemeMode.dark,
+                      );
+                    },
+                    tooltip: 'Toggle Theme',
+                  ),
+                IconButton(
+                  icon: Icon(Icons.logout, color: colorScheme.error),
+                  onPressed: () {
+                    context.read<AuthProvider>().logout();
+                    context.go(AppRoutes.auth);
+                  },
+                  tooltip: 'Log Out',
+                ),
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.transparent,
+                  ),
+                  child: isGuest ? const SizedBox.shrink() : Material(
+                    color: Colors.transparent,
+                    child: Builder(
+                      builder: (context) => InkWell(
+                        customBorder: const CircleBorder(),
+                        hoverColor: colorScheme.surfaceContainerHighest,
+                        onTap: () {
+                          Scaffold.of(context).openDrawer();
+                        },
+                        child: Icon(
+                          Icons.menu_book,
+                          color: colorScheme.primary,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
           ],
         ),

@@ -96,22 +96,22 @@ class DarkModeColors {
   static const darkSecondaryContainer = Color(0xFF715C27);
   static const darkOnSecondaryContainer = Color(0xFFFADD9B);
 
-  static const darkTertiary = Color(0xFFC8C6C5);
-  static const darkOnTertiary = Color(0xFF1B1C1C);
+  static const darkTertiary = Color(0xFFD4D4D4);
+  static const darkOnTertiary = Color(0xFF121212);
 
   static const darkError = Color(0xFFFFB4AB);
   static const darkOnError = Color(0xFF690005);
   static const darkErrorContainer = Color(0xFF93000A);
   static const darkOnErrorContainer = Color(0xFFFFDAD6);
 
-  static const darkSurface = Color(0xFF1B1C19);
-  static const darkOnSurface = Color(0xFFFBF9F4);
-  static const darkSurfaceContainerLow = Color(0xFF222321);
-  static const darkSurfaceVariant = Color(0xFF58413F);
-  static const darkOnSurfaceVariant = Color(0xFFDFBFBC);
+  static const darkSurface = Color(0xFF121212);
+  static const darkOnSurface = Color(0xFFF5F5F5);
+  static const darkSurfaceContainerLow = Color(0xFF1E1E1E);
+  static const darkSurfaceVariant = Color(0xFF2A2A2A);
+  static const darkOnSurfaceVariant = Color(0xFFCCCCCC);
 
-  static const darkOutline = Color(0xFF8C716E);
-  static const darkOutlineVariant = Color(0xFFDFBFBC);
+  static const darkOutline = Color(0xFF8E8E8E);
+  static const darkOutlineVariant = Color(0xFF424242);
   static const darkInversePrimary = Color(0xFF6B0109);
 }
 

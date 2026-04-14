@@ -1,26 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:bible_app/theme.dart';
-
-class BibleTranslation {
-  final String id;
-  final String name;
-  final String abbreviation;
-  final String language;
-  final String description;
-  final bool isDownloaded;
-  final String category;
-
-  const BibleTranslation({
-    required this.id,
-    required this.name,
-    required this.abbreviation,
-    required this.language,
-    required this.description,
-    required this.category,
-    this.isDownloaded = false,
-  });
-}
+import 'package:bible_app/settings_provider.dart';
 
 class TranslationPage extends StatefulWidget {
   const TranslationPage({super.key});
@@ -30,99 +12,14 @@ class TranslationPage extends StatefulWidget {
 }
 
 class _TranslationPageState extends State<TranslationPage> {
-  String _selectedId = 'niv';
   String _searchQuery = '';
   
-  final List<BibleTranslation> _translations = [
-    const BibleTranslation(
-      id: 'niv',
-      name: 'New International Version',
-      abbreviation: 'NIV',
-      language: 'English',
-      description: 'Accurate, readable, and clear. The most widely read modern English Bible.',
-      category: 'Popular',
-      isDownloaded: true,
-    ),
-    const BibleTranslation(
-      id: 'esv',
-      name: 'English Standard Version',
-      abbreviation: 'ESV',
-      language: 'English',
-      description: 'An essentially literal translation that emphasizes word-for-word accuracy.',
-      category: 'Popular',
-      isDownloaded: true,
-    ),
-    const BibleTranslation(
-      id: 'kjv',
-      name: 'King James Version',
-      abbreviation: 'KJV',
-      language: 'English',
-      description: 'The historic and poetic English translation from 1611.',
-      category: 'Classic',
-      isDownloaded: false,
-    ),
-    const BibleTranslation(
-      id: 'nlt',
-      name: 'New Living Translation',
-      abbreviation: 'NLT',
-      language: 'English',
-      description: 'A clear and contemporary English translation, great for everyday reading.',
-      category: 'Popular',
-      isDownloaded: false,
-    ),
-    const BibleTranslation(
-      id: 'csb',
-      name: 'Christian Standard Bible',
-      abbreviation: 'CSB',
-      language: 'English',
-      description: 'A highly readable, highly reliable translation.',
-      category: 'Modern',
-      isDownloaded: false,
-    ),
-    const BibleTranslation(
-      id: 'nasb',
-      name: 'New American Standard Bible',
-      abbreviation: 'NASB',
-      language: 'English',
-      description: 'Strict adherence to literal translation.',
-      category: 'Modern',
-      isDownloaded: false,
-    ),
-    const BibleTranslation(
-      id: 'amp',
-      name: 'Amplified Bible',
-      abbreviation: 'AMP',
-      language: 'English',
-      description: 'Expands words to reveal deeper meaning.',
-      category: 'Study',
-      isDownloaded: false,
-    ),
-    const BibleTranslation(
-      id: 'msg',
-      name: 'The Message',
-      abbreviation: 'MSG',
-      language: 'English',
-      description: 'A contemporary rendering from the original languages.',
-      category: 'Study',
-      isDownloaded: false,
-    ),
-    const BibleTranslation(
-      id: 'rvr60',
-      name: 'Reina-Valera 1960',
-      abbreviation: 'RVR60',
-      language: 'Español',
-      description: 'La Biblia en español más leída y amada.',
-      category: 'International',
-      isDownloaded: false,
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     
-    final filteredTranslations = _translations.where((t) {
+    final filteredTranslations = bibleTranslations.where((t) {
       final query = _searchQuery.toLowerCase();
       return t.name.toLowerCase().contains(query) ||
              t.abbreviation.toLowerCase().contains(query) ||
@@ -236,19 +133,17 @@ class _TranslationPageState extends State<TranslationPage> {
   }
 
   Widget _buildTranslationCard(BibleTranslation translation, ThemeData theme, ColorScheme colorScheme) {
-    final isSelected = translation.id == _selectedId;
+    final settingsProvider = context.watch<SettingsProvider>();
+    final isSelected = translation.id == settingsProvider.currentTranslationId;
     
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: InkWell(
         onTap: () {
-          setState(() {
-            _selectedId = translation.id;
+          settingsProvider.setTranslationId(translation.id);
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted) context.pop();
           });
-          // Also can auto-pop after selection if needed
-          // Future.delayed(const Duration(milliseconds: 300), () {
-          //   if (mounted) context.pop();
-          // });
         },
         borderRadius: BorderRadius.circular(20),
         child: AnimatedContainer(
