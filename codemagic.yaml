@@ -1,0 +1,119 @@
+# codemagic.yaml — Codemagic CI/CD pipeline for the Bible Flutter app
+#
+# This file lives at the repo root and tells Codemagic how to build and
+# publish the app. Once CHAMA18/bible is connected to your Codemagic
+# account (one-time UI step — see docs/CODEMAGIC_SETUP.md), pushes to
+# `v*` tags will trigger this workflow automatically.
+#
+# Required environment variables (set via Codemagic UI or API — see
+# docs/CODEMAGIC_SETUP.md):
+#   KEYSTORE_BASE64              base64-encoded .jks (same value as GitHub secret)
+#   KEYSTORE_ALIAS               bible-key
+#   KEYSTORE_PASSWORD            keystore store password
+#   KEY_PASSWORD                 key alias password
+#   PLAY_SERVICE_ACCOUNT_JSON    service account JSON — store as a FILE variable
+#                                 (Codemagic writes it to a temp path and the
+#                                 variable resolves to the path)
+#
+# Notes:
+# - $FCI_BUILD_DIR is the repo checkout root on the Codemagic runner.
+# - $CM_DIR is the project directory (defaults to repo root).
+# - The mac_mini_m2 instance is the fastest macOS runner Codemagic offers
+#   and is required for any future iOS builds; it also works fine for
+#   Android-only builds.
+
+workflows:
+  android-play-store-deploy:
+    name: Android Play Store Deploy
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+
+    environment:
+      groups:
+        - keystore_credentials      # KEYSTORE_BASE64, KEYSTORE_ALIAS,
+                                    # KEYSTORE_PASSWORD, KEY_PASSWORD
+        - play_store_credentials    # PLAY_SERVICE_ACCOUNT_JSON (file variable)
+      vars:
+        CM_FLUTTER_VERSION: stable
+      flutter: stable
+      java: 17
+
+    cache:
+      cache_paths:
+        - $FLUTTER_ROOT/.pub-cache
+        - $HOME/.gradle/caches
+        - $HOME/.gradle/wrapper
+
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - include:
+            - 'v*'
+      cancel_previous_builds: true
+
+    scripts:
+      - name: 🩺 Flutter doctor
+        script: |
+          flutter doctor -v
+
+      - name: 📦 Flutter pub get
+        script: |
+          cd $CM_BUILD_DIR
+          flutter pub get
+
+      - name: 🔑 Decode release keystore
+        script: |
+          set -euo pipefail
+          echo "$KEYSTORE_BASE64" | base64 -d > "$CM_BUILD_DIR/android/app/release.keystore"
+          chmod 600 "$CM_BUILD_DIR/android/app/release.keystore"
+          ls -lh "$CM_BUILD_DIR/android/app/release.keystore"
+
+      - name: 📝 Write android/key.properties
+        script: |
+          set -euo pipefail
+          cat > "$CM_BUILD_DIR/android/key.properties" <<EOF
+          storePassword=$KEYSTORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEYSTORE_ALIAS
+          storeFile=release.keystore
+          EOF
+          echo "--- android/key.properties (passwords redacted) ---"
+          sed 's/\(Password=\).*/\1***REDACTED***/' "$CM_BUILD_DIR/android/key.properties"
+
+      - name: 🔨 Build release AAB
+        script: |
+          cd $CM_BUILD_DIR
+          flutter build appbundle --release
+
+      - name: ✅ Verify AAB exists
+        script: |
+          set -euo pipefail
+          AAB="$CM_BUILD_DIR/build/app/outputs/bundle/release/app-release.aab"
+          if [ ! -f "$AAB" ]; then
+            echo "ERROR: AAB not found at $AAB"
+            exit 1
+          fi
+          ls -lh "$AAB"
+          echo "AAB_PATH=$AAB" >> $CM_ENV
+
+    artifacts:
+      - build/**/outputs/**/*.aab
+
+    publishing:
+      email:
+        recipients:
+          - chungu424@gmail.com
+        notify:
+          success: true
+          failure: true
+
+      google_play:
+        credentials: $PLAY_SERVICE_ACCOUNT_JSON
+        track: internal
+        submit_as_draft: false
+        changes_not_sent_for_review: false
+        # Release notes are pulled from distribution/whatsnew/<locale>.txt
+        # if present (added in a future step). For now Codemagic will use
+        # the same whatsNewDirectory mechanism via the metadata_path option
+        # if you create a fastlane-style metadata/ directory.
