@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="Holy Bible – Divine Word & Devotions"
+        android:label="Holy Bible – Divine Word &amp; Devotions"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
