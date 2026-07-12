@@ -1,0 +1,10 @@
+Lanzamiento inicial de Holy Bible – Divine Word & Devotions.
+
+Funciones:
+- Texto completo de la Biblia con planes de lectura y devocionales.
+- Inicia sesión con correo electrónico, Google, Apple o como invitado (Firebase Authentication).
+- Lector con tema ajustable y selección de traducción.
+- Feed diario de descubrimiento y exploración por categorías.
+- Privacidad primero: tu historial de lectura es solo tuyo.
+
+Las correcciones de errores y mejoras se enumeran en el historial de commits en GitHub.

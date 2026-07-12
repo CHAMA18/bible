@@ -1,0 +1,253 @@
+name: Deploy to App Store (TestFlight)
+
+# Builds a signed release iOS IPA from the Flutter project and uploads it to
+# App Store Connect via the App Store Connect API (xcrun altool).
+#
+# Triggers:
+#   1. Push of a version tag matching `v*` (e.g. v1.0.1) → builds + uploads to TestFlight
+#   2. Manual dispatch from the Actions tab → same, with optional skip-upload smoke test
+#
+# Required repository secrets (see docs/APP_STORE_SETUP.md for full instructions):
+#   APPSTORE_API_KEY_ID             App Store Connect API key ID (10 chars, e.g. ABC1234XYZ)
+#   APPSTORE_API_ISSUER_ID          Issuer ID (UUID, shown in Users and Access → Keys)
+#   APPSTORE_API_KEY_P8_BASE64      base64-encoded contents of the AuthKey_<ID>.p8 file
+#   IOS_CERTIFICATE_P12_BASE64      base64-encoded distribution certificate (.p12)
+#   IOS_CERTIFICATE_PASSWORD        password protecting the .p12
+#   IOS_PROVISIONING_PROFILE_BASE64 base64-encoded provisioning profile (.mobileprovision)
+#   IOS_TEAM_ID                     Apple Developer Team ID (10 chars, e.g. ABC1234567)
+#   IOS_BUNDLE_ID                   iOS bundle identifier (e.g. com.chunguchama.holybible)
+#
+# Optional repository variables:
+#   IOS_SCHEME                      Xcode scheme (default: Runner)
+#   IOS_EXPORT_METHOD               app-store | ad-hoc | enterprise | development (default: app-store)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      skip_upload:
+        description: 'Build the IPA but skip the TestFlight upload (smoke test)'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: app-store-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    name: Build IPA & upload to TestFlight
+    runs-on: macos-14
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate required secrets
+        env:
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+          APPSTORE_API_KEY_P8_BASE64: ${{ secrets.APPSTORE_API_KEY_P8_BASE64 }}
+          IOS_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+          IOS_BUNDLE_ID: ${{ secrets.IOS_BUNDLE_ID }}
+        run: |
+          set -euo pipefail
+          missing=()
+          [ -z "$APPSTORE_API_KEY_ID" ]            && missing+=("APPSTORE_API_KEY_ID")
+          [ -z "$APPSTORE_API_ISSUER_ID" ]         && missing+=("APPSTORE_API_ISSUER_ID")
+          [ -z "$APPSTORE_API_KEY_P8_BASE64" ]     && missing+=("APPSTORE_API_KEY_P8_BASE64")
+          [ -z "$IOS_CERTIFICATE_P12_BASE64" ]     && missing+=("IOS_CERTIFICATE_P12_BASE64")
+          [ -z "$IOS_CERTIFICATE_PASSWORD" ]       && missing+=("IOS_CERTIFICATE_PASSWORD")
+          [ -z "$IOS_PROVISIONING_PROFILE_BASE64" ] && missing+=("IOS_PROVISIONING_PROFILE_BASE64")
+          [ -z "$IOS_TEAM_ID" ]                    && missing+=("IOS_TEAM_ID")
+          [ -z "$IOS_BUNDLE_ID" ]                  && missing+=("IOS_BUNDLE_ID")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing required repository secrets: ${missing[*]}"
+            echo "::error::See docs/APP_STORE_SETUP.md for how to create them."
+            exit 1
+          fi
+          echo "All required secrets are present."
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter doctor
+        run: flutter doctor -v
+
+      - name: Resolve pub packages
+        run: flutter pub get
+
+      - name: Read version from pubspec
+        id: meta
+        run: |
+          VERSION_LINE=$(grep -E '^version:' pubspec.yaml | head -1 | tr -d ' ')
+          VERSION_WITH_CODE="${VERSION_LINE#version:}"
+          VERSION_NAME="${VERSION_WITH_CODE%%+*}"
+          VERSION_CODE="${VERSION_WITH_CODE##*+}"
+          # iOS marketing version = version name, build number = version code.
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: marketing=$VERSION_NAME build=$VERSION_CODE"
+
+      - name: Resolve scheme / export method
+        id: xc
+        run: |
+          echo "scheme=${{ vars.IOS_SCHEME || 'Runner' }}" >> "$GITHUB_OUTPUT"
+          echo "export_method=${{ vars.IOS_EXPORT_METHOD || 'app-store' }}" >> "$GITHUB_OUTPUT"
+          echo "bundle_id=${{ secrets.IOS_BUNDLE_ID }}" >> "$GITHUB_OUTPUT"
+          echo "team_id=${{ secrets.IOS_TEAM_ID }}" >> "$GITHUB_OUTPUT"
+
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          pod install
+
+      - name: Import distribution certificate
+        env:
+          IOS_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          # Create a temporary keychain.
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Import the .p12 into the temporary keychain.
+          P12_PATH="$RUNNER_TEMP/distribution.p12"
+          echo "$IOS_CERTIFICATE_P12_BASE64" | base64 -d > "$P12_PATH"
+          security import "$P12_PATH" -P "$IOS_CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH" login.keychain
+
+          # Expose keychain path for later steps.
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+
+      - name: Install provisioning profile
+        env:
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          set -euo pipefail
+          PP_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$PP_DIR"
+          PP_PATH="$PP_DIR/build.mobileprovision"
+          echo "$IOS_PROVISIONING_PROFILE_BASE64" | base64 -d > "$PP_PATH"
+          # Quick sanity check that the file is a valid provisioning profile.
+          if ! file "$PP_PATH" | grep -qi "provisioning profile"; then
+            echo "::error::Decoded provisioning profile does not look valid."
+            file "$PP_PATH"
+            exit 1
+          fi
+          echo "Provisioning profile installed: $PP_PATH"
+
+      - name: Write export options plist
+        env:
+          BUNDLE_ID: ${{ steps.xc.outputs.bundle_id }}
+          TEAM_ID: ${{ steps.xc.outputs.team_id }}
+          EXPORT_METHOD: ${{ steps.xc.outputs.export_method }}
+        run: |
+          cat > ios/ExportOptions-CI.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>${EXPORT_METHOD}</string>
+            <key>teamID</key>
+            <string>${TEAM_ID}</string>
+            <key>uploadBitcode</key>
+            <false/>
+            <key>uploadSymbols</key>
+            <false/>
+            <key>compileBitcode</key>
+            <false/>
+            <key>iCloudContainerEnvironment</key>
+            <string>Production</string>
+          </dict>
+          </plist>
+          EOF
+          echo "--- ExportOptions-CI.plist ---"
+          cat ios/ExportOptions-CI.plist
+
+      - name: Update iOS marketing version + build number
+        run: |
+          cd ios
+          agvtool new-marketing-version "${{ steps.meta.outputs.version_name }}" >/dev/null
+          agvtool new-version -all "${{ steps.meta.outputs.version_code }}" >/dev/null
+          echo "iOS version set: marketing=${{ steps.meta.outputs.version_name }} build=${{ steps.meta.outputs.version_code }}"
+
+      - name: Build iOS archive
+        run: |
+          flutter build ipa \
+            --release \
+            --export-options-plist=ios/ExportOptions-CI.plist
+
+      - name: Verify IPA exists
+        run: |
+          IPA=$(find build/ios/ipa -maxdepth 1 -name '*.ipa' -print -quit)
+          if [ -z "$IPA" ]; then
+            echo "::error::No .ipa found in build/ios/ipa/"
+            ls -la build/ios/ipa/ 2>/dev/null || true
+            exit 1
+          fi
+          ls -lh "$IPA"
+          echo "IPA_PATH=$IPA" >> "$GITHUB_ENV"
+
+      - name: Upload IPA as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bible-app-release-ipa-${{ steps.meta.outputs.version_name }}-${{ github.run_id }}
+          path: build/ios/ipa/*.ipa
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Stop here (smoke test mode)
+        if: ${{ github.event.inputs.skip_upload == 'true' }}
+        run: |
+          echo "skip_upload=true — IPA built and uploaded as artifact, not pushed to TestFlight."
+          exit 0
+
+      - name: Write App Store Connect API key
+        env:
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_KEY_P8_BASE64: ${{ secrets.APPSTORE_API_KEY_P8_BASE64 }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${APPSTORE_API_KEY_ID}.p8"
+          echo "$APPSTORE_API_KEY_P8_BASE64" | base64 -d > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          # Quick sanity check that it's a PEM-like file.
+          if ! grep -q "BEGIN PRIVATE KEY" "$KEY_PATH"; then
+            echo "::error::Decoded API key is not a valid .p8 file."
+            exit 1
+          fi
+          echo "ASC_API_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+
+      - name: Upload IPA to TestFlight
+        env:
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          xcrun altool \
+            --upload-app \
+            --type ios \
+            --file "$IPA_PATH" \
+            --apiKey "$APPSTORE_API_KEY_ID" \
+            --apiIssuer "$APPSTORE_API_ISSUER_ID" \
+            --verbose

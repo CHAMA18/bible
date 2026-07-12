@@ -158,31 +158,23 @@ machine or rotate the key.
 
 ---
 
-## 7. Finalise the Android `applicationId` (if you haven't already)
+## 7. Finalise the Android `applicationId`
 
-The current `android/app/build.gradle` contains the Flutter template
-placeholder:
+The Android `applicationId` is **`com.chama.bible`** (set in
+`android/app/build.gradle`, also reflected in the Kotlin source under
+`android/app/src/main/kotlin/com/chama/bible/MainActivity.kt`). This matches
+the package name already registered in `android/app/google-services.json`, so
+Firebase is wired up correctly — **no Firebase regeneration is needed**.
 
-```gradle
-applicationId = "com.mycompany.CounterApp"
-```
+If you ever want to change it (e.g. to a different domain), the change has
+ripple effects:
 
-Before your first real upload, change this to your final package name (e.g.
-`com.chunguchama.bible`). **This change has ripple effects**:
-
-1. **Firebase** — the `android/app/google-services.json` in this repo was
-   generated for the old package name. After changing `applicationId`, you
-   must:
-   - Go to https://console.firebase.google.com → your project → Project
-     settings → Android apps.
-   - Add a new Android app with the new package name.
-   - Download the new `google-services.json` and overwrite the one at
-     `android/app/google-services.json`.
+1. **Firebase** — you must register a new Android app in Firebase Console
+   with the new package name and download a fresh `google-services.json`.
 2. **Play Console** — the app you created in step 2 must use the same package
-   name. If you already created it with the old name, you can't rename — you'd
-   have to delete it and recreate. Do this **before** creating the Play
-   Console app.
-3. **Workflow** — either update `PLAY_PACKAGE_NAME` (recommended) or change
+   name. You cannot rename an existing Play Console app — you'd have to
+   delete it and recreate.
+3. **Workflow** — either update `PLAY_PACKAGE_NAME` repo variable or change
    the fallback in `.github/workflows/play-store-deploy.yml`.
 
 ---
@@ -202,7 +194,31 @@ uploaded one.
 - `1.0.0` → `versionName` (shown to users on the Store listing).
 - `4` → `versionCode` (integer, must monotonically increase).
 
-Bump both before tagging. Example: `1.0.0+4` → `1.0.1+5`.
+### Using the helper script (recommended)
+
+```bash
+./scripts/bump_version.sh 1.0.1
+```
+
+This script:
+1. Reads the current version from `pubspec.yaml`
+2. Increments `versionCode` by 1
+3. Sets `versionName` to the value you passed (e.g. `1.0.1`)
+4. Commits the change as `chore(release): v1.0.1`
+5. Tags the commit as `v1.0.1` (annotated tag)
+6. Pushes both `main` and the tag to origin
+
+The push triggers **both** the Play Store and App Store workflows in
+parallel.
+
+### Manual alternative
+
+```bash
+# Edit pubspec.yaml: version: 1.0.0+4 → 1.0.1+5
+git commit -am "chore(release): v1.0.1"
+git tag v1.0.1
+git push origin main v1.0.1
+```
 
 ---
 

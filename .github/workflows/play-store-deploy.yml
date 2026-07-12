@@ -197,9 +197,8 @@ jobs:
         uses: r0adkll/upload-google-play@v1.1.3
         with:
           serviceAccountJson: ${{ env.PLAY_SERVICE_ACCOUNT_PATH }}
-          packageName: ${{ vars.PLAY_PACKAGE_NAME || 'com.mycompany.CounterApp' }}
+          packageName: ${{ vars.PLAY_PACKAGE_NAME || 'com.chama.bible' }}
           releaseFiles: ${{ env.AAB_PATH }}
           track: ${{ steps.track.outputs.track }}
           status: completed
-          # Uncomment to send a release note (single string applied to all locales):
-          # whatsNewDirectory: distribution/whatsnew
+          whatsNewDirectory: distribution/whatsnew
