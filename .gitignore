@@ -44,6 +44,20 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Android release signing secrets — NEVER commit these
+/android/key.properties
+/android/**/*.jks
+/android/**/*.keystore
+/key.properties
+*.jks
+*.keystore
+
+# Local CI/CD scratch
+/.env
+/.env.local
+service-account-*.json
+play-service-account.json
+
 .prompt_attachments
 *.hologram.dart
 node_modules/

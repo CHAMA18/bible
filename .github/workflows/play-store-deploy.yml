@@ -1,0 +1,205 @@
+name: Deploy to Google Play Store
+
+# Builds a signed release Android App Bundle (AAB) from the Flutter project
+# and uploads it to the Google Play Console via the Play Developer API.
+#
+# Triggers:
+#   1. Push of a version tag matching `v*` (e.g. v1.0.1) → builds + uploads to the configured track
+#   2. Manual dispatch from the Actions tab → same, with selectable track
+#
+# Required repository secrets (see docs/PLAY_STORE_SETUP.md for full instructions):
+#   KEYSTORE_BASE64                    base64-encoded .jks release keystore
+#   KEYSTORE_ALIAS                     alias of the key inside the keystore
+#   KEYSTORE_PASSWORD                  keystore store password
+#   KEY_PASSWORD                       password of the key alias
+#   PLAY_SERVICE_ACCOUNT_JSON          raw service account JSON key (downloaded from Google Cloud Console)
+#
+# Optional repository variables (Settings → Secrets and variables → Actions → Variables):
+#   PLAY_PACKAGE_NAME                  e.g. com.yourcompany.bible — overrides the applicationId baked into the gradle file
+#   PLAY_TRACK                         production | internal | alpha | beta (default: internal)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      track:
+        description: 'Play Store track to publish to'
+        required: true
+        type: choice
+        default: 'internal'
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
+      skip_upload:
+        description: 'Build the AAB but skip the Play Store upload (smoke test)'
+        required: false
+        type: boolean
+        default: false
+
+# Prevent two deployments racing each other for the same workflow.
+concurrency:
+  group: play-store-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    name: Build AAB & upload to Play Store
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve track
+        id: track
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "track=${{ inputs.track }}" >> "$GITHUB_OUTPUT"
+          else
+            # Default track for tag-driven deployments.
+            echo "track=internal" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate required secrets
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_ALIAS: ${{ secrets.KEYSTORE_ALIAS }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          missing=()
+          [ -z "$KEYSTORE_BASE64" ]            && missing+=("KEYSTORE_BASE64")
+          [ -z "$KEYSTORE_ALIAS" ]             && missing+=("KEYSTORE_ALIAS")
+          [ -z "$KEYSTORE_PASSWORD" ]          && missing+=("KEYSTORE_PASSWORD")
+          [ -z "$KEY_PASSWORD" ]               && missing+=("KEY_PASSWORD")
+          [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]  && missing+=("PLAY_SERVICE_ACCOUNT_JSON")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing required repository secrets: ${missing[*]}"
+            echo "::error::See docs/PLAY_STORE_SETUP.md for how to create them."
+            exit 1
+          fi
+          echo "All required secrets are present."
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter doctor
+        run: flutter doctor -v
+
+      - name: Read Flutter / Dart version from pubspec
+        id: meta
+        run: |
+          # pubspec.yaml: version: 1.0.0+4
+          VERSION_LINE=$(grep -E '^version:' pubspec.yaml | head -1 | tr -d ' ')
+          VERSION_WITH_CODE="${VERSION_LINE#version:}"
+          VERSION_NAME="${VERSION_WITH_CODE%%+*}"
+          VERSION_CODE="${VERSION_WITH_CODE##*+}"
+          echo "version_name=$VERSION_NAME"   >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE"   >> "$GITHUB_OUTPUT"
+          echo "Resolved version: name=$VERSION_NAME code=$VERSION_CODE"
+
+      - name: Restore pub packages
+        run: flutter pub get
+
+      - name: Decode release keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          # Place the keystore under android/app/ so the relative path in key.properties
+          # (storeFile=release.keystore) resolves correctly.
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
+          chmod 600 android/app/release.keystore
+          # Quick sanity check that it's a valid JKS/PKCS12 keystore.
+          keytool -list -keystore android/app/release.keystore \
+            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
+            -storetype JKS 2>/dev/null | head -20 || \
+          keytool -list -keystore android/app/release.keystore \
+            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
+            -storetype PKCS12 | head -20
+
+      - name: Write android/key.properties
+        env:
+          KEYSTORE_ALIAS: ${{ secrets.KEYSTORE_ALIAS }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          cat > android/key.properties <<EOF
+          storePassword=${KEYSTORE_PASSWORD}
+          keyPassword=${KEY_PASSWORD}
+          keyAlias=${KEYSTORE_ALIAS}
+          storeFile=release.keystore
+          EOF
+          echo "--- android/key.properties (passwords redacted) ---"
+          sed 's/\(Password=\).*/\1***REDACTED***/' android/key.properties
+
+      - name: Build release AAB
+        run: flutter build appbundle --release
+        env:
+          # Ensures the gradle build picks up Java 17 properly.
+          ORG_GRADLE_PROJECT_jvmTarget: '17'
+
+      - name: Verify AAB exists
+        run: |
+          AAB="build/app/outputs/bundle/release/app-release.aab"
+          if [ ! -f "$AAB" ]; then
+            echo "::error::AAB not found at $AAB"
+            exit 1
+          fi
+          ls -lh "$AAB"
+          echo "AAB_PATH=$AAB" >> "$GITHUB_ENV"
+
+      - name: Upload AAB as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bible-app-release-aab-${{ steps.meta.outputs.version_name }}-${{ github.run_id }}
+          path: build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Stop here (smoke test mode)
+        if: ${{ github.event.inputs.skip_upload == 'true' }}
+        run: |
+          echo "skip_upload=true — AAB built and uploaded as artifact, not pushed to Play Store."
+          exit 0
+
+      - name: Write Play service account JSON
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$PLAY_SERVICE_ACCOUNT_JSON" > "$HOME/play-service-account.json"
+          chmod 600 "$HOME/play-service-account.json"
+          # Validate it's parseable JSON.
+          python3 -c "import json,sys; json.load(open('$HOME/play-service-account.json'))" \
+            || { echo "::error::PLAY_SERVICE_ACCOUNT_JSON is not valid JSON"; exit 1; }
+          echo "PLAY_SERVICE_ACCOUNT_PATH=$HOME/play-service-account.json" >> "$GITHUB_ENV"
+
+      - name: Upload AAB to Google Play Store
+        uses: r0adkll/upload-google-play@v1.1.3
+        with:
+          serviceAccountJson: ${{ env.PLAY_SERVICE_ACCOUNT_PATH }}
+          packageName: ${{ vars.PLAY_PACKAGE_NAME || 'com.mycompany.CounterApp' }}
+          releaseFiles: ${{ env.AAB_PATH }}
+          track: ${{ steps.track.outputs.track }}
+          status: completed
+          # Uncomment to send a release note (single string applied to all locales):
+          # whatsNewDirectory: distribution/whatsnew
